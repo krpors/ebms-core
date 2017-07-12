@@ -1,6 +1,6 @@
 CREATE TABLE cpa
 (
-	cpa_id						VARCHAR(256)		NOT NULL UNIQUE,
+	cpa_id						VARCHAR(256)		NOT NULL PRIMARY KEY,
 	cpa								TEXT						NOT NULL
 );
 
@@ -12,11 +12,11 @@ CREATE TABLE url
 
 CREATE TABLE ebms_message
 (
+	id								SERIAL					PRIMARY KEY,
 	time_stamp				TIMESTAMP				NOT NULL,
-	cpa_id						VARCHAR(256)		NOT NULL,
+	cpa_id						VARCHAR(256)		NOT NULL REFERENCES cpa(cpa_id),
 	conversation_id		VARCHAR(256)		NOT NULL,
 	message_id				VARCHAR(256)		NOT NULL,
-	message_nr				SMALLINT				NOT NULL DEFAULT 0,
 	ref_to_message_id	VARCHAR(256)		NULL,
 	time_to_live			TIMESTAMP				NULL,
 	persist_time			TIMESTAMP				NULL,
@@ -28,29 +28,26 @@ CREATE TABLE ebms_message
 	action						VARCHAR(256)		NOT NULL,
 	content						TEXT						NULL,
 	status						SMALLINT				NULL,
-	status_time				TIMESTAMP				NULL,
-	PRIMARY KEY (message_id,message_nr)
+	status_time				TIMESTAMP				NULL
 );
 
 CREATE INDEX i_ebms_message ON ebms_message (cpa_id,status,message_nr);
 
 CREATE TABLE ebms_attachment
 (
-	message_id				VARCHAR(256)		NOT NULL,
-	message_nr				SMALLINT				NOT NULL,
+	ebms_message_id		INTEGER					NOT NULL REFERENCES ebms_message(id),
 	order_nr					SMALLINT				NOT NULL,
 	name							VARCHAR(256)		NULL,
 	content_id 				VARCHAR(256) 		NOT NULL,
 	content_type			VARCHAR(255)		NOT NULL,
-	content						BYTEA						NOT NULL,
-	FOREIGN KEY (message_id,message_nr) REFERENCES ebms_message (message_id,message_nr)
+	content						BYTEA						NOT NULL
 );
 
 CREATE TABLE ebms_event
 (
-	cpa_id						VARCHAR(256)		NOT NULL,
+	ebms_message_id		INTEGER					NOT NULL REFERENCES ebms_message(id) UNIQUE,
+	cpa_id						VARCHAR(256)		NOT NULL REFERENCES cpa(cpa_id),
 	channel_id				VARCHAR(256)		NOT NULL,
-	message_id				VARCHAR(256)		NOT NULL UNIQUE,
 	time_to_live			TIMESTAMP				NULL,
 	time_stamp				TIMESTAMP				NOT NULL,
 	is_confidential		BOOLEAN					NOT NULL,
@@ -61,18 +58,16 @@ CREATE INDEX i_ebms_event ON ebms_event (time_stamp);
 
 CREATE TABLE ebms_event_log
 (
-	message_id				VARCHAR(256)		NOT NULL,
+	ebms_message_id		INTEGER					NOT NULL REFERENCES ebms_message(id),
 	time_stamp				TIMESTAMP				NOT NULL,
 	uri								VARCHAR(256)		NULL,
 	status						SMALLINT				NOT NULL,
 	error_message			TEXT						NULL
 );
 
-CREATE INDEX i_ebms_event_log ON ebms_event_log (message_id);
-
 CREATE TABLE ebms_message_event
 (
-	message_id				VARCHAR(256)		NOT NULL UNIQUE,
+	ebms_message_id		INTEGER					NOT NULL REFERENCES ebms_message(id) UNIQUE,
 	event_type				SMALLINT				NOT NULL,
 	time_stamp				TIMESTAMP				NOT NULL,
 	processed					SMALLINT				DEFAULT 0 NOT NULL

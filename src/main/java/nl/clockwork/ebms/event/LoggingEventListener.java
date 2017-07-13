@@ -23,26 +23,26 @@ public class LoggingEventListener implements EventListener
 	protected transient Log logger = LogFactory.getLog(getClass());
 
 	@Override
-	public void onMessageReceived(String messageId) throws EventException
+	public void onMessageReceived(long ebMSMessageId) throws EventException
 	{
-		logger.info("Message " + messageId + " received");
+		logger.info("Message " + ebMSMessageId + " received");
 	}
 
 	@Override
-	public void onMessageAcknowledged(String messageId) throws EventException
+	public void onMessageAcknowledged(long ebMSMessageId) throws EventException
 	{
-		logger.info("Message " + messageId + " acknowledged");
+		logger.info("Message " + ebMSMessageId + " acknowledged");
 	}
 	
 	@Override
-	public void onMessageFailed(String messageId) throws EventException
+	public void onMessageFailed(long ebMSMessageId) throws EventException
 	{
-		logger.info("Message " + messageId + " failed");
+		logger.info("Message " + ebMSMessageId + " failed");
 	}
 
 	@Override
-	public void onMessageExpired(String messageId) throws EventException
+	public void onMessageExpired(long ebMSMessageId) throws EventException
 	{
-		logger.info("Message " + messageId + " expired");
+		logger.info("Message " + ebMSMessageId + " expired");
 	}
 }

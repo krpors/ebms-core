@@ -18,7 +18,7 @@ package nl.clockwork.ebms.event;
 import javax.xml.ws.WebFault;
 
 
-@WebFault(name="EbMSEventListenerServiceException", targetNamespace="http://www.clockwork.nl/ebms/event/2.0")
+@WebFault(name="EbMSEventListenerServiceException", targetNamespace="http://www.clockwork.nl/ebms/event/2.20")
 public class EbMSEventListenerServiceException extends EventException
 {
 	private static final long serialVersionUID = 1L;

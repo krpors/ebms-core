@@ -32,12 +32,12 @@ public class EventManager
 	private EbMSDAO ebMSDAO;
 	private CPAManager cpaManager;
 
-	public void createEvent(String cpaId, DeliveryChannel deliveryChannel, String messageId, Date timeToLive, Date timestamp, boolean isConfidential)
+	public void createEvent(String cpaId, DeliveryChannel deliveryChannel, long ebMSMessageId, Date timeToLive, Date timestamp, boolean isConfidential)
 	{
 		if (deliveryChannel != null)
-			ebMSDAO.insertEvent(new EbMSEvent(cpaId,deliveryChannel.getChannelId(),messageId,timeToLive,timestamp,isConfidential,0));
+			ebMSDAO.insertEvent(new EbMSEvent(cpaId,deliveryChannel.getChannelId(),ebMSMessageId,timeToLive,timestamp,isConfidential,0));
 		else
-			ebMSDAO.insertEventLog(messageId,timestamp,null,EbMSEventStatus.FAILED,"Could not resolve endpoint!");
+			ebMSDAO.insertEventLog(ebMSMessageId,timestamp,null,EbMSEventStatus.FAILED,"Could not resolve endpoint!");
 	}
 
 	public void updateEvent(final EbMSEvent event, final String url, final EbMSEventStatus status)
@@ -54,19 +54,19 @@ public class EventManager
 				@Override
 				public void doInTransaction()
 				{
-					ebMSDAO.insertEventLog(event.getMessageId(),event.getTimestamp(),url,status,errorMessage);
+					ebMSDAO.insertEventLog(event.getEbMSMessageId(),event.getTimestamp(),url,status,errorMessage);
 					if (event.getTimeToLive() != null && CPAUtils.isReliableMessaging(deliveryChannel))
 						ebMSDAO.updateEvent(createNewEvent(event,deliveryChannel));
 					else
-						ebMSDAO.deleteEvent(event.getMessageId());
+						ebMSDAO.deleteEvent(event.getEbMSMessageId());
 				}
 			}
 		);
 	}
 
-	public void deleteEvent(String messageId)
+	public void deleteEvent(long ebMSMessageId)
 	{
-		ebMSDAO.deleteEvent(messageId);
+		ebMSDAO.deleteEvent(ebMSMessageId);
 	}
 
 	private EbMSEvent createNewEvent(EbMSEvent event, DeliveryChannel deliveryChannel)
@@ -77,7 +77,7 @@ public class EventManager
 			rm.getRetryInterval().addTo(timestamp);
 		else
 			timestamp = event.getTimeToLive();
-		return new EbMSEvent(event.getCpaId(),event.getDeliveryChannelId(),event.getMessageId(),event.getTimeToLive(),timestamp,event.isConfidential(),event.getRetries() + 1);
+		return new EbMSEvent(event.getCpaId(),event.getDeliveryChannelId(),event.getEbMSMessageId(),event.getTimeToLive(),timestamp,event.isConfidential(),event.getRetries() + 1);
 	}
 
 	public void setEbMSDAO(EbMSDAO ebMSDAO)

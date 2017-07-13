@@ -34,18 +34,18 @@ public class SimpleJMSEventListener implements EventListener
 {
 	public class EventMessageCreator implements MessageCreator
 	{
-		private String messageId;
+		private long ebMSMessageId;
 
-		public EventMessageCreator(String messageId)
+		public EventMessageCreator(long ebMSMessageId)
 		{
-			this.messageId = messageId;
+			this.ebMSMessageId = ebMSMessageId;
 		}
 
 		@Override
 		public Message createMessage(Session session) throws JMSException
 		{
 			Message result = session.createMessage();
-			result.setStringProperty("messageId",messageId);
+			result.setLongProperty("ebMSMessageId",ebMSMessageId);
 			return result;
 		}
 	}
@@ -65,12 +65,12 @@ public class SimpleJMSEventListener implements EventListener
 	}
 
 	@Override
-	public void onMessageReceived(String messageId) throws EventException
+	public void onMessageReceived(long ebMSMessageId) throws EventException
 	{
 		try
 		{
-			logger.info("Message " + messageId + " received");
-			jmsTemplate.send(destinations.get(EbMSMessageEventType.RECEIVED.name()),new EventMessageCreator(messageId));
+			logger.info("Message " + ebMSMessageId + " received");
+			jmsTemplate.send(destinations.get(EbMSMessageEventType.RECEIVED.name()),new EventMessageCreator(ebMSMessageId));
 		}
 		catch (JmsException e)
 		{
@@ -79,12 +79,12 @@ public class SimpleJMSEventListener implements EventListener
 	}
 
 	@Override
-	public void onMessageAcknowledged(String messageId) throws EventException
+	public void onMessageAcknowledged(long ebMSMessageId) throws EventException
 	{
 		try
 		{
-			logger.info("Message " + messageId + " acknowledged");
-			jmsTemplate.send(destinations.get(EbMSMessageEventType.ACKNOWLEDGED.name()),new EventMessageCreator(messageId));
+			logger.info("Message " + ebMSMessageId + " acknowledged");
+			jmsTemplate.send(destinations.get(EbMSMessageEventType.ACKNOWLEDGED.name()),new EventMessageCreator(ebMSMessageId));
 		}
 		catch (JmsException e)
 		{
@@ -93,12 +93,12 @@ public class SimpleJMSEventListener implements EventListener
 	}
 	
 	@Override
-	public void onMessageFailed(String messageId) throws EventException
+	public void onMessageFailed(long ebMSMessageId) throws EventException
 	{
 		try
 		{
-			logger.info("Message " + messageId + " failed");
-			jmsTemplate.send(destinations.get(EbMSMessageEventType.FAILED.name()),new EventMessageCreator(messageId));
+			logger.info("Message " + ebMSMessageId + " failed");
+			jmsTemplate.send(destinations.get(EbMSMessageEventType.FAILED.name()),new EventMessageCreator(ebMSMessageId));
 		}
 		catch (JmsException e)
 		{
@@ -107,12 +107,12 @@ public class SimpleJMSEventListener implements EventListener
 	}
 
 	@Override
-	public void onMessageExpired(String messageId) throws EventException
+	public void onMessageExpired(long ebMSMessageId) throws EventException
 	{
 		try
 		{
-			logger.info("Message " + messageId + " expired");
-			jmsTemplate.send(destinations.get(EbMSMessageEventType.EXPIRED.name()),new EventMessageCreator(messageId));
+			logger.info("Message " + ebMSMessageId + " expired");
+			jmsTemplate.send(destinations.get(EbMSMessageEventType.EXPIRED.name()),new EventMessageCreator(ebMSMessageId));
 		}
 		catch (JmsException e)
 		{

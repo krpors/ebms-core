@@ -90,7 +90,10 @@ public class EbMSMessageProcessor
 			}
 			else if (EbMSAction.MESSAGE_ERROR.action().equals(message.getMessageHeader().getAction()))
 			{
-				Document request = ebMSDAO.getDocument(message.getMessageHeader().getMessageData().getRefToMessageId());
+				Long id = ebMSDAO.getEbMSMessageId(message.getMessageHeader().getMessageData().getRefToMessageId(),EbMSMessageStatus.getSendStatus().toArray(new EbMSMessageStatus[0]));
+				if (id == null)
+					throw new EbMSProcessingException("Message " + message.getMessageHeader().getMessageData().getRefToMessageId() + " not found!");
+				Document request = ebMSDAO.getDocument(id);
 				EbMSMessage requestMessage = EbMSMessageUtils.getEbMSMessage(request);
 				if (requestMessage.getSyncReply() != null)
 					throw new EbMSProcessingException("No async ErrorMessage expected for message " + requestMessage.getMessageHeader().getMessageData().getMessageId());
@@ -99,11 +102,14 @@ public class EbMSMessageProcessor
 			}
 			else if (EbMSAction.ACKNOWLEDGMENT.action().equals(message.getMessageHeader().getAction()))
 			{
-				Document request = ebMSDAO.getDocument(message.getAcknowledgment().getRefToMessageId());
+				Long id = ebMSDAO.getEbMSMessageId(message.getAcknowledgment().getRefToMessageId(),EbMSMessageStatus.getSendStatus().toArray(new EbMSMessageStatus[0]));
+				if (id == null)
+					throw new EbMSProcessingException("Message " + message.getAcknowledgment().getRefToMessageId() + " not found!");
+				Document request = ebMSDAO.getDocument(id);
 				EbMSMessage requestMessage = EbMSMessageUtils.getEbMSMessage(request);
 				if (requestMessage.getAckRequested() == null || requestMessage.getSyncReply() != null)
 					throw new EbMSProcessingException("No async Acknowledgment expected for message " + requestMessage.getMessageHeader().getMessageData().getMessageId());
-				processAcknowledgment(message.getMessageHeader().getCPAId(),timestamp,requestMessage,message);
+				processAcknowledgment(message.getMessageHeader().getCPAId(),timestamp,id,requestMessage,message);
 				return null;
 			}
 			else if (EbMSAction.STATUS_REQUEST.action().equals(message.getMessageHeader().getAction()))
@@ -256,7 +262,7 @@ public class EbMSMessageProcessor
 		}
 	}
 
-	private void processAcknowledgment(String cpaId, final Date timestamp, final EbMSMessage requestMessage, final EbMSMessage responseMessage) throws EbMSProcessingException
+	private void processAcknowledgment(String cpaId, final Date timestamp, final Long id, final EbMSMessage requestMessage, final EbMSMessage responseMessage) throws EbMSProcessingException
 	{
 		try
 		{
@@ -269,8 +275,8 @@ public class EbMSMessageProcessor
 					{
 						Date persistTime = ebMSDAO.getPersistTime(responseMessage.getMessageHeader().getMessageData().getRefToMessageId());
 						ebMSDAO.insertMessage(timestamp,persistTime,responseMessage,null);
-						if (ebMSDAO.updateMessage(responseMessage.getMessageHeader().getMessageData().getRefToMessageId(),EbMSMessageStatus.SENDING,EbMSMessageStatus.DELIVERED) > 0)
-							eventListener.onMessageAcknowledged(responseMessage.getMessageHeader().getMessageData().getRefToMessageId());
+						if (ebMSDAO.updateMessage(id,EbMSMessageStatus.SENDING,EbMSMessageStatus.DELIVERED) > 0)
+							eventListener.onMessageAcknowledged(id);
 					}
 				}
 			);

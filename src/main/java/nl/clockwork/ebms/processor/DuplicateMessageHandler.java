@@ -68,10 +68,10 @@ public class DuplicateMessageHandler
 						message.getAttachments().clear();
 					ebMSDAO.insertDuplicateMessage(timestamp,message);
 				}
-				EbMSDocument result = ebMSDAO.getEbMSDocumentByRefToMessageId(messageHeader.getCPAId(),messageHeader.getMessageData().getMessageId(),mshMessageService,EbMSAction.MESSAGE_ERROR.action(),EbMSAction.ACKNOWLEDGMENT.action());
-				if (result == null)
+				Long ebMSMessageId = ebMSDAO.getEbMSMessageIdByRefToMessageId(messageHeader.getCPAId(),messageHeader.getMessageData().getMessageId(),mshMessageService,EbMSAction.MESSAGE_ERROR.action(),EbMSAction.ACKNOWLEDGMENT.action());
+				if (ebMSMessageId == null)
 					logger.warn("No response found for duplicate message " + message.getMessageHeader().getMessageData().getMessageId() + "!");
-				return result;
+				return ebMSDAO.getEbMSDocument(ebMSMessageId);
 			}
 			else
 			{
@@ -87,9 +87,12 @@ public class DuplicateMessageHandler
 									message.getAttachments().clear();
 								ebMSDAO.insertDuplicateMessage(timestamp,message);
 							}
-							EbMSMessageContext messageContext = ebMSDAO.getMessageContextByRefToMessageId(messageHeader.getCPAId(),messageHeader.getMessageData().getMessageId(),mshMessageService,EbMSAction.MESSAGE_ERROR.action(),EbMSAction.ACKNOWLEDGMENT.action());
-							if (messageContext != null)
-								eventManager.createEvent(messageHeader.getCPAId(),cpaManager.getReceiveDeliveryChannel(messageHeader.getCPAId(),new CacheablePartyId(message.getMessageHeader().getFrom().getPartyId()),message.getMessageHeader().getFrom().getRole(),CPAUtils.toString(CPAUtils.createEbMSMessageService()),null),messageContext.getMessageId(),message.getMessageHeader().getMessageData().getTimeToLive(),messageContext.getTimestamp(),false);
+							Long ebMSMessageId = ebMSDAO.getEbMSMessageIdByRefToMessageId(messageHeader.getCPAId(),messageHeader.getMessageData().getMessageId(),mshMessageService,EbMSAction.MESSAGE_ERROR.action(),EbMSAction.ACKNOWLEDGMENT.action());
+							if (ebMSMessageId != null)
+							{
+								EbMSMessageContext messageContext = ebMSDAO.getMessageContext(ebMSMessageId);
+								eventManager.createEvent(messageHeader.getCPAId(),cpaManager.getReceiveDeliveryChannel(messageHeader.getCPAId(),new CacheablePartyId(message.getMessageHeader().getFrom().getPartyId()),message.getMessageHeader().getFrom().getRole(),CPAUtils.toString(CPAUtils.createEbMSMessageService()),null),ebMSMessageId,message.getMessageHeader().getMessageData().getTimeToLive(),messageContext.getTimestamp(),false);
+							}
 							else
 								logger.warn("No response found for duplicate message " + message.getMessageHeader().getMessageData().getMessageId() + "!");
 						}

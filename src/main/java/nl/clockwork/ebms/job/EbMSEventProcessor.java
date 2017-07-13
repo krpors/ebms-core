@@ -72,7 +72,7 @@ public class EbMSEventProcessor implements InitializingBean, Job
 			String url = null;
 			try
 			{
-				EbMSDocument requestDocument = ebMSDAO.getEbMSDocumentIfUnsent(event.getMessageId());
+				EbMSDocument requestDocument = ebMSDAO.getEbMSDocumentIfUnsent(event.getEbMSMessageId());
 				if (requestDocument != null)
 				{
 					if (event.isConfidential())
@@ -80,13 +80,13 @@ public class EbMSEventProcessor implements InitializingBean, Job
 					url = CPAUtils.getUri(deliveryChannel);
 					if (!StringUtils.isEmpty(url))
 						url = urlManager.getURL(url);
-					logger.info("Sending message " + event.getMessageId() + " to " + url);
+					logger.info("Sending message " + event.getEbMSMessageId() + " to " + url);
 					EbMSDocument responseDocument = ebMSClient.sendMessage(url,requestDocument);
 					messageProcessor.processResponse(requestDocument,responseDocument);
 					eventManager.updateEvent(event,url,EbMSEventStatus.SUCCEEDED);
 				}
 				else
-					eventManager.deleteEvent(event.getMessageId());
+					eventManager.deleteEvent(event.getEbMSMessageId());
 			}
 			catch (final EbMSResponseException e)
 			{
@@ -100,8 +100,8 @@ public class EbMSEventProcessor implements InitializingBean, Job
 						{
 							eventManager.updateEvent(event,url_,EbMSEventStatus.FAILED,e.getMessage());
 							if (e instanceof EbMSResponseSOAPException && EbMSResponseSOAPException.CLIENT.equals(((EbMSResponseSOAPException)e).getFaultCode()))
-								if (ebMSDAO.updateMessage(event.getMessageId(),EbMSMessageStatus.SENDING,EbMSMessageStatus.DELIVERY_FAILED) > 0)
-									eventListener.onMessageFailed(event.getMessageId());
+								if (ebMSDAO.updateMessage(event.getEbMSMessageId(),EbMSMessageStatus.SENDING,EbMSMessageStatus.DELIVERY_FAILED) > 0)
+									eventListener.onMessageFailed(event.getEbMSMessageId());
 						}
 					}
 				);
@@ -117,20 +117,20 @@ public class EbMSEventProcessor implements InitializingBean, Job
 		{
 			try
 			{
-				logger.warn("Expiring message " +  event.getMessageId());
+				logger.warn("Expiring message " +  event.getEbMSMessageId());
 				ebMSDAO.executeTransaction(
 					new DAOTransactionCallback()
 					{
 						@Override
 						public void doInTransaction()
 						{
-							EbMSDocument requestDocument = ebMSDAO.getEbMSDocumentIfUnsent(event.getMessageId());
+							EbMSDocument requestDocument = ebMSDAO.getEbMSDocumentIfUnsent(event.getEbMSMessageId());
 							if (requestDocument != null)
 							{
-								if (ebMSDAO.updateMessage(event.getMessageId(),EbMSMessageStatus.SENDING,EbMSMessageStatus.EXPIRED) > 0)
-									eventListener.onMessageExpired(event.getMessageId());
+								if (ebMSDAO.updateMessage(event.getEbMSMessageId(),EbMSMessageStatus.SENDING,EbMSMessageStatus.EXPIRED) > 0)
+									eventListener.onMessageExpired(event.getEbMSMessageId());
 							}
-							eventManager.deleteEvent(event.getMessageId());
+							eventManager.deleteEvent(event.getEbMSMessageId());
 						}
 					}
 				);

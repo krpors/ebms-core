@@ -30,7 +30,7 @@ public class EbMSDAOImpl extends AbstractEbMSDAO
 	}
 
 	@Override
-	public String getMessageIdsQuery(String messageContextFilter, EbMSMessageStatus status, int maxNr)
+	public String getEbMSMessageIdsQuery(String messageContextFilter, EbMSMessageStatus status, int maxNr)
 	{
 		return "select message_id" +
 		" from ebms_message" +

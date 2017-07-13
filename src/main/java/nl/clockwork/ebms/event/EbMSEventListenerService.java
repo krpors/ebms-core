@@ -20,24 +20,24 @@ import javax.jws.WebParam;
 import javax.jws.WebService;
 
 
-@WebService(targetNamespace="http://www.clockwork.nl/ebms/event/2.0")
+@WebService(targetNamespace="http://www.clockwork.nl/ebms/event/2.20")
 public interface EbMSEventListenerService extends EventListener
 {
 
 	@Override
 	@WebMethod(operationName="MessageReceived")
-	public void onMessageReceived(@WebParam(name="MessageId") String messageId) throws EbMSEventListenerServiceException;
+	public void onMessageReceived(@WebParam(name="EbMSMessageId") long ebMSMessageId) throws EbMSEventListenerServiceException;
 
 	@Override
 	@WebMethod(operationName="MessageAcknowledged")
-	public void onMessageAcknowledged(@WebParam(name="MessageId") String messageId) throws EbMSEventListenerServiceException;
+	public void onMessageAcknowledged(@WebParam(name="EbMSMessageId") long ebMSMessageId) throws EbMSEventListenerServiceException;
 
 	@Override
 	@WebMethod(operationName="MessageDeliveryFailed")
-	public void onMessageFailed(@WebParam(name="MessageId") String messageId) throws EbMSEventListenerServiceException;
+	public void onMessageFailed(@WebParam(name="EbMSMessageId") long ebMSMessageId) throws EbMSEventListenerServiceException;
 
 	@Override
 	@WebMethod(operationName="MessageNotAcknowledged")
-	public void onMessageExpired(@WebParam(name="MessageId") String messageId) throws EbMSEventListenerServiceException;
+	public void onMessageExpired(@WebParam(name="EbMSMessageId") long ebMSMessageId) throws EbMSEventListenerServiceException;
 
 }

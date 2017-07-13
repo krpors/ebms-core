@@ -36,6 +36,7 @@ import nl.clockwork.ebms.model.EbMSMessage;
 import nl.clockwork.ebms.model.EbMSMessageContent;
 import nl.clockwork.ebms.model.EbMSMessageContext;
 import nl.clockwork.ebms.model.EbMSMessageEvent;
+import nl.clockwork.ebms.model.IdHolder;
 import nl.clockwork.ebms.model.MessageStatus;
 import nl.clockwork.ebms.model.Party;
 import nl.clockwork.ebms.processor.EbMSProcessorException;
@@ -91,7 +92,7 @@ public class EbMSMessageServiceImpl implements InitializingBean, EbMSMessageServ
 	}
 	
 	@Override
-	public String sendMessage(EbMSMessageContent messageContent) throws EbMSMessageServiceException
+	public long sendMessage(EbMSMessageContent messageContent) throws EbMSMessageServiceException
 	{
 		try
 		{
@@ -105,11 +106,11 @@ public class EbMSMessageServiceImpl implements InitializingBean, EbMSMessageServ
 	}
 
 	@Override
-	public String resendMessage(String messageId) throws EbMSMessageServiceException
+	public long resendMessage(long ebMSMessageId) throws EbMSMessageServiceException
 	{
 		try
 		{
-			EbMSMessageContent messageContent = ebMSDAO.getMessageContent(messageId);
+			EbMSMessageContent messageContent = ebMSDAO.getMessageContent(ebMSMessageId);
 			if (messageContent != null)
 			{
 				resetMessage(messageContent.getContext());
@@ -125,14 +126,14 @@ public class EbMSMessageServiceImpl implements InitializingBean, EbMSMessageServ
 	}
 
 	@Override
-	public List<String> getMessageIds(EbMSMessageContext messageContext, Integer maxNr) throws EbMSMessageServiceException
+	public List<Long> getEbMSMessageIds(EbMSMessageContext messageContext, Integer maxNr) throws EbMSMessageServiceException
 	{
 		try
 		{
 			if (maxNr == null || maxNr == 0)
 				return ebMSDAO.getMessageIds(messageContext,EbMSMessageStatus.RECEIVED);
 			else
-				return ebMSDAO.getMessageIds(messageContext,EbMSMessageStatus.RECEIVED,maxNr);
+				return ebMSDAO.getEbMSMessageIds(messageContext,EbMSMessageStatus.RECEIVED,maxNr);
 		}
 		catch (DAOException e)
 		{
@@ -141,7 +142,7 @@ public class EbMSMessageServiceImpl implements InitializingBean, EbMSMessageServ
 	}
 
 	@Override
-	public EbMSMessageContent getMessage(final String messageId, Boolean process) throws EbMSMessageServiceException
+	public EbMSMessageContent getMessage(final long ebMSMessageId, Boolean process) throws EbMSMessageServiceException
 	{
 		try
 		{
@@ -151,12 +152,12 @@ public class EbMSMessageServiceImpl implements InitializingBean, EbMSMessageServ
 					@Override
 					public void doInTransaction() throws DAOException
 					{
-						ebMSDAO.updateMessage(messageId,EbMSMessageStatus.RECEIVED,EbMSMessageStatus.PROCESSED);
+						ebMSDAO.updateMessage(ebMSMessageId,EbMSMessageStatus.RECEIVED,EbMSMessageStatus.PROCESSED);
 						if (deleteEbMSAttachmentsOnMessageProcessed)
-							ebMSDAO.deleteAttachments(messageId);
+							ebMSDAO.deleteAttachments(ebMSMessageId);
 					}
 				});
-			return ebMSDAO.getMessageContent(messageId);
+			return ebMSDAO.getMessageContent(ebMSMessageId);
 		}
 		catch (DAOException e)
 		{
@@ -165,7 +166,7 @@ public class EbMSMessageServiceImpl implements InitializingBean, EbMSMessageServ
 	}
 
 	@Override
-	public void processMessage(final String messageId) throws EbMSMessageServiceException
+	public void processMessage(final long ebMSMessageId) throws EbMSMessageServiceException
 	{
 		try
 		{
@@ -174,9 +175,9 @@ public class EbMSMessageServiceImpl implements InitializingBean, EbMSMessageServ
 				@Override
 				public void doInTransaction() throws DAOException
 				{
-					ebMSDAO.updateMessage(messageId,EbMSMessageStatus.RECEIVED,EbMSMessageStatus.PROCESSED);
+					ebMSDAO.updateMessage(ebMSMessageId,EbMSMessageStatus.RECEIVED,EbMSMessageStatus.PROCESSED);
 					if (deleteEbMSAttachmentsOnMessageProcessed)
-						ebMSDAO.deleteAttachments(messageId);
+						ebMSDAO.deleteAttachments(ebMSMessageId);
 				}
 			});
 		}
@@ -187,7 +188,7 @@ public class EbMSMessageServiceImpl implements InitializingBean, EbMSMessageServ
 	}
 
 	@Override
-	public void processMessages(final List<String> messageIds) throws EbMSMessageServiceException
+	public void processMessages(final List<Long> ebMSMessageIds) throws EbMSMessageServiceException
 	{
 		try
 		{
@@ -196,9 +197,9 @@ public class EbMSMessageServiceImpl implements InitializingBean, EbMSMessageServ
 				@Override
 				public void doInTransaction() throws DAOException
 				{
-					ebMSDAO.updateMessages(messageIds,EbMSMessageStatus.RECEIVED,EbMSMessageStatus.PROCESSED);
+					ebMSDAO.updateMessages(ebMSMessageIds,EbMSMessageStatus.RECEIVED,EbMSMessageStatus.PROCESSED);
 					if (deleteEbMSAttachmentsOnMessageProcessed)
-						ebMSDAO.deleteAttachments(messageIds);
+						ebMSDAO.deleteAttachments(ebMSMessageIds);
 				}
 			});
 		}
@@ -209,18 +210,18 @@ public class EbMSMessageServiceImpl implements InitializingBean, EbMSMessageServ
 	}
 	
 	@Override
-	public MessageStatus getMessageStatus(String messageId) throws EbMSMessageServiceException
+	public MessageStatus getMessageStatus(long ebMSMessageId) throws EbMSMessageServiceException
 	{
 		try
 		{
-			EbMSMessageContext context = ebMSDAO.getMessageContext(messageId);
+			EbMSMessageContext context = ebMSDAO.getMessageContext(ebMSMessageId);
 			if (context == null)
-				throw new EbMSMessageServiceException("No message found with messageId " + messageId + "!");
+				throw new EbMSMessageServiceException("No message found with messageId " + ebMSMessageId + "!");
 			else if (Constants.EBMS_SERVICE_URI.equals(context.getService()))
-				throw new EbMSMessageServiceException("Message with messageId " + messageId + " is an EbMS service message!");
+				throw new EbMSMessageServiceException("Message with messageId " + ebMSMessageId + " is an EbMS service message!");
 			else
 			{
-				EbMSMessage request = ebMSMessageFactory.createEbMSStatusRequest(context.getCpaId(),cpaManager.getFromParty(context.getCpaId(),context.getFromRole(),context.getService(),context.getAction()),cpaManager.getToParty(context.getCpaId(),context.getToRole(),context.getService(),context.getAction()),messageId);
+				EbMSMessage request = ebMSMessageFactory.createEbMSStatusRequest(context.getCpaId(),cpaManager.getFromParty(context.getCpaId(),context.getFromRole(),context.getService(),context.getAction()),cpaManager.getToParty(context.getCpaId(),context.getToRole(),context.getService(),context.getAction()),context.getMessageId());
 				EbMSMessage response = deliveryManager.sendMessage(cpaManager.getUri(context.getCpaId(),new CacheablePartyId(request.getMessageHeader().getTo().getPartyId()),request.getMessageHeader().getTo().getRole(),CPAUtils.toString(request.getMessageHeader().getService()),request.getMessageHeader().getAction()),request);
 				if (response != null)
 				{
@@ -234,30 +235,6 @@ public class EbMSMessageServiceImpl implements InitializingBean, EbMSMessageServ
 			}
 		}
 		catch (DAOException | EbMSProcessorException e)
-		{
-			throw new EbMSMessageServiceException(e);
-		}
-	}
-
-	@Override
-	public MessageStatus getMessageStatus(String cpaId, Party fromParty, Party toParty, String messageId) throws EbMSMessageServiceException
-	{
-		try
-		{
-			ebMSMessageContextValidator.validate(cpaId,fromParty,toParty);
-			EbMSMessage request = ebMSMessageFactory.createEbMSStatusRequest(cpaId,fromParty,toParty,messageId);
-			EbMSMessage response = deliveryManager.sendMessage(cpaManager.getUri(cpaId,new CacheablePartyId(request.getMessageHeader().getTo().getPartyId()),request.getMessageHeader().getTo().getRole(),CPAUtils.toString(request.getMessageHeader().getService()),request.getMessageHeader().getAction()),request);
-			if (response != null)
-			{
-				if (EbMSAction.STATUS_RESPONSE.action().equals(response.getMessageHeader().getAction()) && response.getStatusResponse() != null)
-					return new MessageStatus(response.getStatusResponse().getTimestamp() == null ? null : response.getStatusResponse().getTimestamp(),EbMSMessageStatus.get(response.getStatusResponse().getMessageStatus()));
-				else
-					throw new EbMSMessageServiceException("No valid response received!");
-			}
-			else
-				throw new EbMSMessageServiceException("No response received!");
-		}
-		catch (ValidationException | DAOException | EbMSProcessorException e)
 		{
 			throw new EbMSMessageServiceException(e);
 		}
@@ -280,7 +257,7 @@ public class EbMSMessageServiceImpl implements InitializingBean, EbMSMessageServ
 	}
 
 	@Override
-	public void processMessageEvent(final String messageId) throws EbMSMessageServiceException
+	public void processMessageEvent(final long ebMSMessageId) throws EbMSMessageServiceException
 	{
 		try
 		{
@@ -289,8 +266,8 @@ public class EbMSMessageServiceImpl implements InitializingBean, EbMSMessageServ
 				@Override
 				public void doInTransaction() throws DAOException
 				{
-					ebMSDAO.processEbMSMessageEvent(messageId);
-					processMessage(messageId);
+					ebMSDAO.processEbMSMessageEvent(ebMSMessageId);
+					processMessage(ebMSMessageId);
 				}
 			});
 		}
@@ -301,7 +278,7 @@ public class EbMSMessageServiceImpl implements InitializingBean, EbMSMessageServ
 	}
 
 	@Override
-	public void processMessageEvents(final List<String> messageIds) throws EbMSMessageServiceException
+	public void processMessageEvents(final List<Long> ebMSMessageIds) throws EbMSMessageServiceException
 	{
 		try
 		{
@@ -310,8 +287,8 @@ public class EbMSMessageServiceImpl implements InitializingBean, EbMSMessageServ
 				@Override
 				public void doInTransaction() throws DAOException
 				{
-					ebMSDAO.processEbMSMessageEvents(messageIds);
-					processMessages(messageIds);
+					ebMSDAO.processEbMSMessageEvents(ebMSMessageIds);
+					processMessages(ebMSMessageIds);
 				}
 			});
 		}
@@ -328,10 +305,11 @@ public class EbMSMessageServiceImpl implements InitializingBean, EbMSMessageServ
 		context.setTimestamp(null);
 	}
 
-	private String sendMessage_(EbMSMessageContent messageContent) throws EbMSProcessorException
+	private long sendMessage_(EbMSMessageContent messageContent) throws EbMSProcessorException
 	{
-		final EbMSMessage result = ebMSMessageFactory.createEbMSMessage(messageContent.getContext().getCpaId(),messageContent);
-		signatureGenerator.generate(result);
+		final IdHolder result = new IdHolder();
+		final EbMSMessage message = ebMSMessageFactory.createEbMSMessage(messageContent.getContext().getCpaId(),messageContent);
+		signatureGenerator.generate(message);
 		ebMSDAO.executeTransaction(
 			new DAOTransactionCallback()
 			{
@@ -339,13 +317,13 @@ public class EbMSMessageServiceImpl implements InitializingBean, EbMSMessageServ
 				public void doInTransaction()
 				{
 					Date timestamp = new Date();
-					DeliveryChannel deliveryChannel = cpaManager.getReceiveDeliveryChannel(result.getMessageHeader().getCPAId(),new CacheablePartyId(result.getMessageHeader().getTo().getPartyId()),result.getMessageHeader().getTo().getRole(),CPAUtils.toString(result.getMessageHeader().getService()),result.getMessageHeader().getAction());
-					ebMSDAO.insertMessage(timestamp,CPAUtils.getPersistTime(timestamp,deliveryChannel),result,EbMSMessageStatus.SENDING);
-					eventManager.createEvent(result.getMessageHeader().getCPAId(),deliveryChannel,result.getMessageHeader().getMessageData().getMessageId(),result.getMessageHeader().getMessageData().getTimeToLive(),result.getMessageHeader().getMessageData().getTimestamp(),cpaManager.isConfidential(result.getMessageHeader().getCPAId(),new CacheablePartyId(result.getMessageHeader().getFrom().getPartyId()),result.getMessageHeader().getFrom().getRole(),CPAUtils.toString(result.getMessageHeader().getService()),result.getMessageHeader().getAction()));
+					DeliveryChannel deliveryChannel = cpaManager.getReceiveDeliveryChannel(message.getMessageHeader().getCPAId(),new CacheablePartyId(message.getMessageHeader().getTo().getPartyId()),message.getMessageHeader().getTo().getRole(),CPAUtils.toString(message.getMessageHeader().getService()),message.getMessageHeader().getAction());
+					result.id = ebMSDAO.insertMessage(timestamp,CPAUtils.getPersistTime(timestamp,deliveryChannel),message,EbMSMessageStatus.SENDING);
+					eventManager.createEvent(message.getMessageHeader().getCPAId(),deliveryChannel,result.id,message.getMessageHeader().getMessageData().getTimeToLive(),message.getMessageHeader().getMessageData().getTimestamp(),cpaManager.isConfidential(message.getMessageHeader().getCPAId(),new CacheablePartyId(message.getMessageHeader().getFrom().getPartyId()),message.getMessageHeader().getFrom().getRole(),CPAUtils.toString(message.getMessageHeader().getService()),message.getMessageHeader().getAction()));
 				}
 			}
 		);
-		return result.getMessageHeader().getMessageData().getMessageId();
+		return result.id;
 	}
 
 	public void setDeliveryManager(DeliveryManager deliveryManager)

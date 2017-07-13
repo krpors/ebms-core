@@ -49,7 +49,7 @@ public class EbMSDAOImpl extends nl.clockwork.ebms.dao.mysql.EbMSDAOImpl
 	}
 
 	@Override
-	public String getMessageIdsQuery(String messageContextFilter, EbMSMessageStatus status, int maxNr)
+	public String getEbMSMessageIdsQuery(String messageContextFilter, EbMSMessageStatus status, int maxNr)
 	{
 		return "select top " + maxNr + " message_id" +
 		" from ebms_message" +
@@ -60,10 +60,11 @@ public class EbMSDAOImpl extends nl.clockwork.ebms.dao.mysql.EbMSDAOImpl
 	}
 
 	@Override
-	public void insertDuplicateMessage(final Date timestamp, final EbMSMessage message) throws DAOException
+	public long insertDuplicateMessage(final Date timestamp, final EbMSMessage message) throws DAOException
 	{
 		try
 		{
+			final KeyHolder keyHolder = new GeneratedKeyHolder();
 			transactionTemplate.execute(
 				new TransactionCallbackWithoutResult()
 				{
@@ -72,7 +73,6 @@ public class EbMSDAOImpl extends nl.clockwork.ebms.dao.mysql.EbMSDAOImpl
 					{
 						try
 						{
-							KeyHolder keyHolder = new GeneratedKeyHolder();
 							jdbcTemplate.update(
 								new PreparedStatementCreator()
 								{
@@ -132,6 +132,7 @@ public class EbMSDAOImpl extends nl.clockwork.ebms.dao.mysql.EbMSDAOImpl
 					}
 				}
 			);
+			return keyHolder.getKey().longValue();
 		}
 		catch (DataAccessException | TransactionException e)
 		{

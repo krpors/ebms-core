@@ -36,31 +36,31 @@ public class DAOEventListener implements EventListener
 	}
 
 	@Override
-	public void onMessageReceived(String messageId) throws EventException
+	public void onMessageReceived(long ebMSMessageId) throws EventException
 	{
-		logger.info("Message " + messageId + " received");
-		ebMSDAO.insertEbMSMessageEvent(messageId,EbMSMessageEventType.RECEIVED);
+		logger.info("Message " + ebMSMessageId + " received");
+		ebMSDAO.insertEbMSMessageEvent(ebMSMessageId,EbMSMessageEventType.RECEIVED);
 	}
 
 	@Override
-	public void onMessageAcknowledged(String messageId) throws EventException
+	public void onMessageAcknowledged(long ebMSMessageId) throws EventException
 	{
-		logger.info("Message " + messageId + " acknowledged");
-		ebMSDAO.insertEbMSMessageEvent(messageId,EbMSMessageEventType.ACKNOWLEDGED);
+		logger.info("Message " + ebMSMessageId + " acknowledged");
+		ebMSDAO.insertEbMSMessageEvent(ebMSMessageId,EbMSMessageEventType.ACKNOWLEDGED);
 	}
 	
 	@Override
-	public void onMessageFailed(String messageId) throws EventException
+	public void onMessageFailed(long ebMSMessageId) throws EventException
 	{
-		logger.info("Message " + messageId + " failed");
-		ebMSDAO.insertEbMSMessageEvent(messageId,EbMSMessageEventType.FAILED);
+		logger.info("Message " + ebMSMessageId + " failed");
+		ebMSDAO.insertEbMSMessageEvent(ebMSMessageId,EbMSMessageEventType.FAILED);
 	}
 
 	@Override
-	public void onMessageExpired(String messageId) throws EventException
+	public void onMessageExpired(long ebMSMessageId) throws EventException
 	{
-		logger.info("Message " + messageId + " expired");
-		ebMSDAO.insertEbMSMessageEvent(messageId,EbMSMessageEventType.EXPIRED);
+		logger.info("Message " + ebMSMessageId + " expired");
+		ebMSDAO.insertEbMSMessageEvent(ebMSMessageId,EbMSMessageEventType.EXPIRED);
 	}
 
 	public void setEbMSDAO(EbMSDAO ebMSDAO)

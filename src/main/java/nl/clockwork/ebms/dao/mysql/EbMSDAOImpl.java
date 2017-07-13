@@ -18,13 +18,11 @@ package nl.clockwork.ebms.dao.mysql;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.Date;
 import java.util.List;
 
-import javax.mail.util.ByteArrayDataSource;
 import javax.xml.transform.TransformerException;
 
 import nl.clockwork.ebms.Constants.EbMSMessageEventType;
@@ -41,7 +39,6 @@ import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.MessageHeader;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.PreparedStatementCreator;
-import org.springframework.jdbc.core.simple.ParameterizedRowMapper;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.transaction.TransactionException;
@@ -57,7 +54,7 @@ public class EbMSDAOImpl extends AbstractEbMSDAO
 	}
 
 	@Override
-	public String getMessageIdsQuery(String messageContextFilter, EbMSMessageStatus status, int maxNr)
+	public String getEbMSMessageIdsQuery(String messageContextFilter, EbMSMessageStatus status, int maxNr)
 	{
 		return "select message_id" +
 		" from ebms_message" +
@@ -69,10 +66,11 @@ public class EbMSDAOImpl extends AbstractEbMSDAO
 	}
 
 	@Override
-	public void insertMessage(final Date timestamp, final Date persistTime, final EbMSMessage message, final EbMSMessageStatus status) throws DAOException
+	public long insertMessage(final Date timestamp, final Date persistTime, final EbMSMessage message, final EbMSMessageStatus status) throws DAOException
 	{
 		try
 		{
+			final KeyHolder keyHolder = new GeneratedKeyHolder();
 			transactionTemplate.execute(
 				new TransactionCallbackWithoutResult()
 				{
@@ -81,7 +79,6 @@ public class EbMSDAOImpl extends AbstractEbMSDAO
 					{
 						try
 						{
-							KeyHolder keyHolder = new GeneratedKeyHolder();
 							jdbcTemplate.update(
 								new PreparedStatementCreator()
 								{
@@ -157,6 +154,7 @@ public class EbMSDAOImpl extends AbstractEbMSDAO
 					}
 				}
 			);
+			return keyHolder.getKey().longValue();
 		}
 		catch (DataAccessException | TransactionException e)
 		{
@@ -165,10 +163,11 @@ public class EbMSDAOImpl extends AbstractEbMSDAO
 	}
 
 	@Override
-	public void insertDuplicateMessage(final Date timestamp, final EbMSMessage message) throws DAOException
+	public long insertDuplicateMessage(final Date timestamp, final EbMSMessage message) throws DAOException
 	{
 		try
 		{
+			final KeyHolder keyHolder = new GeneratedKeyHolder();
 			transactionTemplate.execute(
 				new TransactionCallbackWithoutResult()
 				{
@@ -177,7 +176,6 @@ public class EbMSDAOImpl extends AbstractEbMSDAO
 					{
 						try
 						{
-							KeyHolder keyHolder = new GeneratedKeyHolder();
 							jdbcTemplate.update(
 								new PreparedStatementCreator()
 								{
@@ -241,6 +239,7 @@ public class EbMSDAOImpl extends AbstractEbMSDAO
 					}
 				}
 			);
+			return keyHolder.getKey().longValue();
 		}
 		catch (DataAccessException | TransactionException e)
 		{
@@ -271,30 +270,6 @@ public class EbMSDAOImpl extends AbstractEbMSDAO
 				IOUtils.toByteArray(attachment.getInputStream())
 			);
 		}
-	}
-
-	@Override
-	protected List<EbMSAttachment> getAttachments(String messageId)
-	{
-		return jdbcTemplate.query(
-			"select a.name, a.content_id, a.content_type, a.content" + 
-			" from ebms_message m, ebms_attachment a" +
-			" where m.message_id = ?" +
-			" and m.message_nr = 0" +
-			" and m.id = a.ebms_message_id" +
-			" order by a.order_nr",
-			new ParameterizedRowMapper<EbMSAttachment>()
-			{
-				@Override
-				public EbMSAttachment mapRow(ResultSet rs, int rowNum) throws SQLException
-				{
-					ByteArrayDataSource dataSource = new ByteArrayDataSource(rs.getBytes("content"),rs.getString("content_type"));
-					dataSource.setName(rs.getString("name"));
-					return new EbMSAttachment(dataSource,rs.getString("content_id"));
-				}
-			},
-			messageId
-		);
 	}
 
 	@Override

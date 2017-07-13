@@ -356,8 +356,7 @@ public abstract class AbstractEbMSDAO implements EbMSDAO
 			return jdbcTemplate.queryForInt(
 				"select count(message_id)" +
 				" from ebms_message" +
-				" where message_id = ?" +
-				" and message_nr = 0",
+				" where message_id = ?",
 				messageId
 			) > 0;
 		}
@@ -376,7 +375,6 @@ public abstract class AbstractEbMSDAO implements EbMSDAO
 				"select count(message_id)" +
 				" from ebms_message" +
 				" where message_id = ?" +
-				" and message_nr = 0" +
 				" and cpa_id = ?" /*+
 				" and from_role =?" +
 				" and to_role = ?" +
@@ -397,14 +395,14 @@ public abstract class AbstractEbMSDAO implements EbMSDAO
 	}
 
 	@Override
-	public EbMSMessageContent getMessageContent(String messageId) throws DAOException
+	public EbMSMessageContent getMessageContent(long ebMSMessageId) throws DAOException
 	{
 		try
 		{
-			EbMSMessageContext messageContext = getMessageContext(messageId);
+			EbMSMessageContext messageContext = getMessageContext(ebMSMessageId);
 			if (messageContext == null)
 				return null;
-			List<EbMSAttachment> attachments = getAttachments(messageId);
+			List<EbMSAttachment> attachments = getAttachments(ebMSMessageId);
 			List<EbMSDataSource> dataSources = new ArrayList<EbMSDataSource>();
 			for (DataSource dataSource : attachments)
 				dataSources.add(new EbMSDataSource(dataSource.getName(),dataSource.getContentType(),IOUtils.toByteArray(dataSource.getInputStream())));
@@ -417,7 +415,7 @@ public abstract class AbstractEbMSDAO implements EbMSDAO
 	}
 
 	@Override
-	public EbMSMessageContext getMessageContext(String messageId) throws DAOException
+	public EbMSMessageContext getMessageContext(long ebMSMessageId) throws DAOException
 	{
 		try
 		{
@@ -435,8 +433,7 @@ public abstract class AbstractEbMSDAO implements EbMSDAO
 				" ref_to_message_id," +
 				" status" +
 				" from ebms_message" + 
-				" where message_id = ?" +
-				" and message_nr = 0",
+				" where id = ?",
 				new ParameterizedRowMapper<EbMSMessageContext>()
 				{
 					@Override
@@ -457,7 +454,7 @@ public abstract class AbstractEbMSDAO implements EbMSDAO
 					}
 					
 				},
-				messageId
+				ebMSMessageId
 			);
 		}
 		catch(EmptyResultDataAccessException e)
@@ -529,17 +526,83 @@ public abstract class AbstractEbMSDAO implements EbMSDAO
 	}
 	
 	@Override
-	public Document getDocument(String messageId) throws DAOException
+	public Long getEbMSMessageId(String messageId, EbMSMessageStatus...ebMSMessageStatus) throws DAOException
+	{
+		try
+		{
+			return jdbcTemplate.queryForLong(
+				"select id" +
+				" from ebms_message" +
+				" where message_id = ?" +
+				" and status in (" + join(ebMSMessageStatus) + ")",
+				messageId
+			);
+		}
+		catch(EmptyResultDataAccessException e)
+		{
+			return null;
+		}
+		catch (DataAccessException e)
+		{
+			throw new DAOException(e);
+		}
+	}
+	
+	private String join(EbMSMessageStatus[] ebMSMessageStatus)
+	{
+		StringBuffer result = new StringBuffer();
+		if (ebMSMessageStatus.length > 0)
+		{
+			boolean first = true;
+			for (EbMSMessageStatus status : ebMSMessageStatus)
+			{
+				if (first)
+					first = false;
+				else
+					result.append(",");
+				result.append(status.ordinal());
+			}
+		}
+		return result.toString();
+	}
+	
+	@Override
+	public Long getEbMSMessageIdByRefToMessageId(String cpaId, String refToMessageId, Service service, String...actions) throws DAOException
+	{
+		try
+		{
+			return jdbcTemplate.queryForLong(
+				"select id" +
+				" from ebms_message" +
+				" where cpa_id = ?" +
+				" and ref_to_message_id = ?",
+				(service == null ? "" : " and service = '" + EbMSMessageUtils.toString(service) + "'") +
+				(actions.length == 0 ? "" : " and action in ('" + StringUtils.join(actions,"','") + "')") +
+				cpaId,
+				refToMessageId
+			);
+		}
+		catch(EmptyResultDataAccessException e)
+		{
+			return null;
+		}
+		catch (DataAccessException e)
+		{
+			throw new DAOException(e);
+		}
+	}
+
+	@Override
+	public Document getDocument(long ebMSMessageId) throws DAOException
 	{
 		try
 		{
 			String document = jdbcTemplate.queryForObject(
 				"select content" +
 				" from ebms_message" +
-				" where message_id = ?" +
-				" and message_nr = 0",
+				" where id = ?",
 				String.class,
-				messageId
+				ebMSMessageId
 			);
 			return DOMUtils.read(document);
 		}
@@ -554,20 +617,18 @@ public abstract class AbstractEbMSDAO implements EbMSDAO
 	}
 	
 	@Override
-	public EbMSDocument getEbMSDocumentIfUnsent(String messageId) throws DAOException
+	public EbMSDocument getEbMSDocument(long ebMSMessageId) throws DAOException
 	{
 		try
 		{
 			String document = jdbcTemplate.queryForObject(
 				"select content" +
 				" from ebms_message" +
-				" where message_id = ?" +
-				" and message_nr = 0" +
-				" and (status is null or status = " + EbMSMessageStatus.SENDING.id() + ")",
+				" where id = ?",
 				String.class,
-				messageId
+				ebMSMessageId
 			);
-			return new EbMSDocument(messageId,DOMUtils.read(document),getAttachments(messageId));
+			return new EbMSDocument(String.valueOf(ebMSMessageId),DOMUtils.read(document),getAttachments(ebMSMessageId));
 		}
 		catch(EmptyResultDataAccessException e)
 		{
@@ -578,47 +639,27 @@ public abstract class AbstractEbMSDAO implements EbMSDAO
 			throw new DAOException(e);
 		}
 	}
-	
+
 	@Override
-	public EbMSDocument getEbMSDocumentByRefToMessageId(String cpaId, String refToMessageId, Service service, String...actions) throws DAOException
+	public EbMSDocument getEbMSDocumentIfUnsent(long ebMSMessageId) throws DAOException
 	{
 		try
 		{
-			EbMSDocument document = jdbcTemplate.queryForObject(
-				"select message_id, content" +
+			String document = jdbcTemplate.queryForObject(
+				"select content" +
 				" from ebms_message" +
-				" where cpa_id = ?" +
-				" and ref_to_message_id = ?" +
-				" and message_nr = 0" +
-				(service == null ? "" : " and service = '" + EbMSMessageUtils.toString(service) + "'") +
-				(actions.length == 0 ? "" : " and action in ('" + StringUtils.join(actions,"','") + "')"),
-				new RowMapper<EbMSDocument>()
-				{
-
-					@Override
-					public EbMSDocument mapRow(ResultSet rs, int rowNum) throws SQLException
-					{
-						try
-						{
-							return new EbMSDocument(rs.getString("message_id"),DOMUtils.read(rs.getString("content")));
-						}
-						catch (ParserConfigurationException | SAXException | IOException e)
-						{
-							throw new SQLException(e);
-						}
-					}
-					
-				},
-				cpaId,
-				refToMessageId
+				" where id = ?" +
+				" and (status is null or status = " + EbMSMessageStatus.SENDING.id() + ")",
+				String.class,
+				ebMSMessageId
 			);
-			return new EbMSDocument(document.getContentId(),document.getMessage(),getAttachments(refToMessageId));
+			return new EbMSDocument(String.valueOf(ebMSMessageId),DOMUtils.read(document),getAttachments(ebMSMessageId));
 		}
 		catch(EmptyResultDataAccessException e)
 		{
 			return null;
 		}
-		catch (DataAccessException e)
+		catch (DataAccessException | ParserConfigurationException | SAXException | IOException  e)
 		{
 			throw new DAOException(e);
 		}
@@ -658,7 +699,7 @@ public abstract class AbstractEbMSDAO implements EbMSDAO
 	}
 
 	@Override
-	public List<String> getMessageIds(EbMSMessageContext messageContext, EbMSMessageStatus status) throws DAOException
+	public List<Long> getMessageIds(EbMSMessageContext messageContext, EbMSMessageStatus status) throws DAOException
 	{
 		try
 		{
@@ -666,12 +707,12 @@ public abstract class AbstractEbMSDAO implements EbMSDAO
 			return jdbcTemplate.queryForList(
 					"select message_id" +
 					" from ebms_message" +
-					" where message_nr = 0" +
-					" and status = " + status.id() +
+					" where status = " + status.id() +
 					getMessageContextFilter(messageContext,parameters) +
+					//TODO == send message statuses
 					" order by time_stamp asc",
 					parameters.toArray(new Object[0]),
-					String.class
+					Long.class
 			);
 		}
 		catch (DataAccessException e)
@@ -680,19 +721,19 @@ public abstract class AbstractEbMSDAO implements EbMSDAO
 		}
 	}
 
-	public abstract String getMessageIdsQuery(String messageContextFilter, EbMSMessageStatus status, int maxNr);
+	public abstract String getEbMSMessageIdsQuery(String messageContextFilter, EbMSMessageStatus status, int maxNr);
 
 	@Override
-	public List<String> getMessageIds(EbMSMessageContext messageContext, EbMSMessageStatus status, int maxNr) throws DAOException
+	public List<Long> getEbMSMessageIds(EbMSMessageContext messageContext, EbMSMessageStatus status, int maxNr) throws DAOException
 	{
 		try
 		{
 			List<Object> parameters = new ArrayList<Object>();
 			String messageContextFilter = getMessageContextFilter(messageContext,parameters);
 			return jdbcTemplate.queryForList(
-					getMessageIdsQuery(messageContextFilter,status,maxNr),
+					getEbMSMessageIdsQuery(messageContextFilter,status,maxNr),
 					parameters.toArray(new Object[0]),
-					String.class
+					Long.class
 			);
 		}
 		catch (DataAccessException e)
@@ -702,10 +743,11 @@ public abstract class AbstractEbMSDAO implements EbMSDAO
 	}
 
 	@Override
-	public void insertMessage(final Date timestamp, final Date persistTime, final EbMSMessage message, final EbMSMessageStatus status) throws DAOException
+	public long insertMessage(final Date timestamp, final Date persistTime, final EbMSMessage message, final EbMSMessageStatus status) throws DAOException
 	{
 		try
 		{
+			final KeyHolder keyHolder = new GeneratedKeyHolder();
 			transactionTemplate.execute(
 				new TransactionCallbackWithoutResult()
 				{
@@ -714,7 +756,6 @@ public abstract class AbstractEbMSDAO implements EbMSDAO
 					{
 						try
 						{
-							KeyHolder keyHolder = new GeneratedKeyHolder();
 							jdbcTemplate.update(
 								new PreparedStatementCreator()
 								{
@@ -744,7 +785,7 @@ public abstract class AbstractEbMSDAO implements EbMSDAO
 													"status_time," +
 													"persist_time" +
 												") values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-												new int[]{4,5}
+												new int[]{1}
 											);
 											ps.setTimestamp(1,new Timestamp(timestamp.getTime()));
 											MessageHeader messageHeader = message.getMessageHeader();
@@ -784,7 +825,7 @@ public abstract class AbstractEbMSDAO implements EbMSDAO
 								},
 								keyHolder
 							);
-							insertAttachments(keyHolder,message.getAttachments());
+							insertAttachments(keyHolder.getKey().longValue(),message.getAttachments());
 						}
 						catch (IOException e)
 						{
@@ -793,6 +834,7 @@ public abstract class AbstractEbMSDAO implements EbMSDAO
 					}
 				}
 			);
+			return keyHolder.getKey().longValue();
 		}
 		catch (DataAccessException | TransactionException e)
 		{
@@ -801,10 +843,11 @@ public abstract class AbstractEbMSDAO implements EbMSDAO
 	}
 
 	@Override
-	public void insertDuplicateMessage(final Date timestamp, final EbMSMessage message) throws DAOException
+	public long insertDuplicateMessage(final Date timestamp, final EbMSMessage message) throws DAOException
 	{
 		try
 		{
+			final KeyHolder keyHolder = new GeneratedKeyHolder();
 			transactionTemplate.execute(
 				new TransactionCallbackWithoutResult()
 				{
@@ -813,7 +856,6 @@ public abstract class AbstractEbMSDAO implements EbMSDAO
 					{
 						try
 						{
-							KeyHolder keyHolder = new GeneratedKeyHolder();
 							jdbcTemplate.update(
 								new PreparedStatementCreator()
 								{
@@ -841,7 +883,7 @@ public abstract class AbstractEbMSDAO implements EbMSDAO
 													"action," +
 													"content" +
 												") values (?,?,?,?,(select max(message_nr) + 1 from ebms_message where message_id = ?),?,?,?,?,?,?,?,?,?)",
-												new int[]{4,5}
+												new int[]{1}
 											);
 											ps.setTimestamp(1,new Timestamp(timestamp.getTime()));
 											MessageHeader messageHeader = message.getMessageHeader();
@@ -868,7 +910,7 @@ public abstract class AbstractEbMSDAO implements EbMSDAO
 								},
 								keyHolder
 							);
-							insertAttachments(keyHolder,message.getAttachments());
+							insertAttachments(keyHolder.getKey().longValue(),message.getAttachments());
 						}
 						catch (IOException e)
 						{
@@ -877,6 +919,7 @@ public abstract class AbstractEbMSDAO implements EbMSDAO
 					}
 				}
 			);
+			return keyHolder.getKey().longValue();
 		}
 		catch (DataAccessException | TransactionException e)
 		{
@@ -884,7 +927,7 @@ public abstract class AbstractEbMSDAO implements EbMSDAO
 		}
 	}
 
-	protected void insertAttachments(KeyHolder keyHolder, List<EbMSAttachment> attachments) throws InvalidDataAccessApiUsageException, DataAccessException, IOException
+	protected void insertAttachments(long ebMSMessageId, List<EbMSAttachment> attachments) throws InvalidDataAccessApiUsageException, DataAccessException, IOException
 	{
 		int orderNr = 0;
 		for (EbMSAttachment attachment : attachments)
@@ -892,16 +935,14 @@ public abstract class AbstractEbMSDAO implements EbMSDAO
 			jdbcTemplate.update
 			(
 				"insert into ebms_attachment (" +
-					"message_id," +
-					"message_nr," +
+					"ebms_message_id," +
 					"order_nr," +
 					"name," +
 					"content_id," +
 					"content_type," +
 					"content" +
 				") values (?,?,?,?,?,?,?)",
-				keyHolder.getKeys().get("message_id"),
-				keyHolder.getKeys().get("message_nr"),
+				ebMSMessageId,
 				orderNr++,
 				attachment.getName(),
 				attachment.getContentId(),
@@ -912,7 +953,7 @@ public abstract class AbstractEbMSDAO implements EbMSDAO
 	}
 
 	@Override
-	public int updateMessage(String messageId, EbMSMessageStatus oldStatus, EbMSMessageStatus newStatus) throws DAOException
+	public int updateMessage(long ebMSMessageId, EbMSMessageStatus oldStatus, EbMSMessageStatus newStatus) throws DAOException
 	{
 		try
 		{
@@ -921,12 +962,11 @@ public abstract class AbstractEbMSDAO implements EbMSDAO
 				"update ebms_message" +
 				" set status = ?," +
 				" status_time = ?" +
-				" where message_id = ?" +
-				" and message_nr = 0" +
+				" where id = ?" +
 				" and status = ?",
 				newStatus.id(),
 				new Date(),
-				messageId,
+				ebMSMessageId,
 				oldStatus != null ? oldStatus.id() : null
 			);
 		}
@@ -937,7 +977,7 @@ public abstract class AbstractEbMSDAO implements EbMSDAO
 	}
 
 	@Override
-	public void updateMessages(final List<String> messageIds, final EbMSMessageStatus oldStatus, final EbMSMessageStatus newStatus) throws DAOException
+	public void updateMessages(final List<Long> ids, final EbMSMessageStatus oldStatus, final EbMSMessageStatus newStatus) throws DAOException
 	{
 		try
 		{
@@ -955,7 +995,7 @@ public abstract class AbstractEbMSDAO implements EbMSDAO
 						{
 							ps.setInt(1,newStatus.id());
 							ps.setTimestamp(2,new Timestamp(new Date().getTime()));
-							ps.setString(3,messageIds.get(row));
+							ps.setLong(3,ids.get(row));
 							if (oldStatus == null)
 								ps.setNull(4,java.sql.Types.INTEGER);
 							else
@@ -965,7 +1005,7 @@ public abstract class AbstractEbMSDAO implements EbMSDAO
 						@Override
 						public int getBatchSize()
 						{
-							return messageIds.size();
+							return ids.size();
 						}
 					}
 			);
@@ -977,14 +1017,14 @@ public abstract class AbstractEbMSDAO implements EbMSDAO
 	}
 
 	@Override
-	public void deleteAttachments(String messageId)
+	public void deleteAttachments(long ebMSMessageId)
 	{
 		try
 		{
 			jdbcTemplate.update(
 				"delete from ebms_attachment" +
-				" where message_id = ?" +
-				messageId
+				" where ebms_message_id = ?" +
+				ebMSMessageId
 			);
 		}
 		catch (DataAccessException e)
@@ -994,7 +1034,7 @@ public abstract class AbstractEbMSDAO implements EbMSDAO
 	}
 
 	@Override
-	public void deleteAttachments(final List<String> messageIds)
+	public void deleteAttachments(final List<Long> ebMSMessageIds)
 	{
 		try
 		{
@@ -1006,13 +1046,13 @@ public abstract class AbstractEbMSDAO implements EbMSDAO
 					@Override
 					public void setValues(PreparedStatement ps, int row) throws SQLException
 					{
-						ps.setString(1,messageIds.get(row));
+						ps.setLong(1,ebMSMessageIds.get(row));
 					}
 
 					@Override
 					public int getBatchSize()
 					{
-						return messageIds.size();
+						return ebMSMessageIds.size();
 					}
 				}
 			);
@@ -1038,7 +1078,7 @@ public abstract class AbstractEbMSDAO implements EbMSDAO
 					@Override
 					public EbMSEvent mapRow(ResultSet rs, int rowNum) throws SQLException
 					{
-						return new EbMSEvent(rs.getString("cpa_id"),rs.getString("channel_id"),rs.getString("message_id"),rs.getTimestamp("time_to_live"),rs.getTimestamp("time_stamp"),rs.getBoolean("is_confidential"),rs.getInt("retries"));
+						return new EbMSEvent(rs.getString("cpa_id"),rs.getString("channel_id"),rs.getLong("ebms_message_id"),rs.getTimestamp("time_to_live"),rs.getTimestamp("time_stamp"),rs.getBoolean("is_confidential"),rs.getInt("retries"));
 					}
 				},
 				timestamp
@@ -1059,7 +1099,7 @@ public abstract class AbstractEbMSDAO implements EbMSDAO
 				"insert into ebms_event (" +
 					"cpa_id," +
 					"channel_id," +
-					"message_id," +
+					"ebms_message_id," +
 					"time_to_live," +
 					"time_stamp," +
 					"is_confidential," +
@@ -1067,7 +1107,7 @@ public abstract class AbstractEbMSDAO implements EbMSDAO
 				") values (?,?,?,?,?,?,?)",
 				event.getCpaId(),
 				event.getDeliveryChannelId(),
-				event.getMessageId(),
+				event.getEbMSMessageId(),
 				event.getTimeToLive(),
 				event.getTimestamp(),
 				event.isConfidential(),
@@ -1089,10 +1129,10 @@ public abstract class AbstractEbMSDAO implements EbMSDAO
 				"update ebms_event set" +
 				" time_stamp = ?," +
 				" retries = ?" +
-				" where message_id = ?",
+				" where ebms_message_id = ?",
 				event.getTimestamp(),
 				event.getRetries(),
-				event.getMessageId()
+				event.getEbMSMessageId()
 			);
 		}
 		catch (DataAccessException e)
@@ -1102,14 +1142,14 @@ public abstract class AbstractEbMSDAO implements EbMSDAO
 	}
 	
 	@Override
-	public void deleteEvent(String messageId) throws DAOException
+	public void deleteEvent(long ebMSMessageId) throws DAOException
 	{
 		try
 		{
 			jdbcTemplate.update(
 				"delete from ebms_event" +
-				" where message_id = ?",
-				messageId
+				" where ebms_message_id = ?",
+				ebMSMessageId
 			);
 		}
 		catch (DataAccessException e)
@@ -1119,19 +1159,19 @@ public abstract class AbstractEbMSDAO implements EbMSDAO
 	}
 
 	@Override
-	public void insertEventLog(String messageId, Date timestamp, String uri, EbMSEventStatus status, String errorMessage) throws DAOException
+	public void insertEventLog(long ebMSMessageId, Date timestamp, String uri, EbMSEventStatus status, String errorMessage) throws DAOException
 	{
 		try
 		{
 			jdbcTemplate.update(
 				"insert into ebms_event_log (" +
-					"message_id," +
+					"ebms_message_id," +
 					"time_stamp," +
 					"uri," +
 					"status," +
 					"error_message" +
 				") values (?,?,?,?,?)",
-				messageId,
+				ebMSMessageId,
 				timestamp,
 				uri,
 				status.id(),
@@ -1161,7 +1201,7 @@ public abstract class AbstractEbMSDAO implements EbMSDAO
 		}
 		return result.toString();
 	}
-	
+
 	@Override
 	public List<EbMSMessageEvent> getEbMSMessageEvents(EbMSMessageContext messageContext, EbMSMessageEventType[] types) throws DAOException
 	{
@@ -1223,18 +1263,18 @@ public abstract class AbstractEbMSDAO implements EbMSDAO
 	}
 
 	@Override
-	public void insertEbMSMessageEvent(String messageId, EbMSMessageEventType type) throws DAOException
+	public void insertEbMSMessageEvent(long ebMSMessageId, EbMSMessageEventType type) throws DAOException
 	{
 		try
 		{
 			jdbcTemplate.update
 			(
 				"insert into ebms_message_event (" +
-					"message_id," +
+					"ebms_message_id," +
 					"event_type," +
 					"time_stamp" +
 				") values (?,?,?)",
-				messageId,
+				ebMSMessageId,
 				type.ordinal(),
 				new Date()
 			);
@@ -1246,7 +1286,7 @@ public abstract class AbstractEbMSDAO implements EbMSDAO
 	}
 
 	@Override
-	public int processEbMSMessageEvent(String messageId) throws DAOException
+	public int processEbMSMessageEvent(long ebMSMessageId) throws DAOException
 	{
 		try
 		{
@@ -1254,8 +1294,8 @@ public abstract class AbstractEbMSDAO implements EbMSDAO
 			(
 				"update ebms_message_event" +
 				" set processed = 1" +
-				" where message_id = ?",
-				messageId
+				" where ebms_message_id = ?",
+				ebMSMessageId
 			);
 		}
 		catch (DataAccessException e)
@@ -1265,26 +1305,26 @@ public abstract class AbstractEbMSDAO implements EbMSDAO
 	}
 
 	@Override
-	public void processEbMSMessageEvents(final List<String> messageIds) throws DAOException
+	public void processEbMSMessageEvents(final List<Long> ebMSMessageIds) throws DAOException
 	{
 		try
 		{
 			jdbcTemplate.batchUpdate(
 				"update ebms_message_event" +
 				" set procesed = 1," +
-				" where message_id = ?",
+				" where ebms_message_id = ?",
 				new BatchPreparedStatementSetter()
 				{
 					@Override
 					public void setValues(PreparedStatement ps, int row) throws SQLException
 					{
-						ps.setString(1,messageIds.get(row));
+						ps.setLong(1,ebMSMessageIds.get(row));
 					}
 
 					@Override
 					public int getBatchSize()
 					{
-						return messageIds.size();
+						return ebMSMessageIds.size();
 					}
 				}
 			);
@@ -1301,13 +1341,12 @@ public abstract class AbstractEbMSDAO implements EbMSDAO
 		return jdbcTemplate.queryForObject("select persist_time from ebms_message where message_id = ? and message_nr = 0",Date.class,messageId);
 	}
 
-	protected List<EbMSAttachment> getAttachments(String messageId)
+	protected List<EbMSAttachment> getAttachments(long ebMSMessageId)
 	{
 		return jdbcTemplate.query(
 			"select name, content_id, content_type, content" + 
 			" from ebms_attachment" + 
-			" where message_id = ?" +
-			" and message_nr = 0" +
+			" where ebms_message_id = ?" +
 			" order by order_nr",
 			new ParameterizedRowMapper<EbMSAttachment>()
 			{
@@ -1319,7 +1358,7 @@ public abstract class AbstractEbMSDAO implements EbMSDAO
 					return new EbMSAttachment(dataSource,rs.getString("content_id"));
 				}
 			},
-			messageId
+			ebMSMessageId
 		);
 	}
 

@@ -53,36 +53,38 @@ public interface EbMSDAO
 
 	boolean existsMessage(String messageId) throws DAOException;
 	boolean existsIdenticalMessage(EbMSMessage message) throws DAOException;
-	EbMSMessageContent getMessageContent(String messageId) throws DAOException;
-	EbMSMessageContext getMessageContext(String messageId) throws DAOException;
+	EbMSMessageContent getMessageContent(long ebMSMessageId) throws DAOException;
+	EbMSMessageContext getMessageContext(long ebMSMessageId) throws DAOException;
 	EbMSMessageContext getMessageContextByRefToMessageId(String cpaId, String refToMessageId, Service service, String...actions) throws DAOException;
-	Document getDocument(String messageId) throws DAOException;
-	EbMSDocument getEbMSDocumentIfUnsent(String messageId) throws DAOException;
-	EbMSDocument getEbMSDocumentByRefToMessageId(String cpaId, String refToMessageId, Service service, String...actions) throws DAOException;
+	Long getEbMSMessageId(String messageId, EbMSMessageStatus...ebMSMessageStatus) throws DAOException;
+	Long getEbMSMessageIdByRefToMessageId(String cpaId, String refToMessageId, Service service, String...actions) throws DAOException;
+	Document getDocument(long ebMSMessageId) throws DAOException;
+	EbMSDocument getEbMSDocument(long ebMSMessageId) throws DAOException;
+	EbMSDocument getEbMSDocumentIfUnsent(long ebMSMessageId) throws DAOException;
 	EbMSMessageStatus getMessageStatus(String messageId) throws DAOException;
 
-	List<String> getMessageIds(EbMSMessageContext messageContext, EbMSMessageStatus status) throws DAOException;
-	List<String> getMessageIds(EbMSMessageContext messageContext, EbMSMessageStatus status, int maxNr) throws DAOException;
+	List<Long> getMessageIds(EbMSMessageContext messageContext, EbMSMessageStatus status) throws DAOException;
+	List<Long> getEbMSMessageIds(EbMSMessageContext messageContext, EbMSMessageStatus status, int maxNr) throws DAOException;
 
-	void insertMessage(Date timestamp, Date persistTime, EbMSMessage message, EbMSMessageStatus status) throws DAOException;
-	void insertDuplicateMessage(Date timestamp, EbMSMessage message) throws DAOException;
-	int updateMessage(String messageId, EbMSMessageStatus oldStatus, EbMSMessageStatus newStatus) throws DAOException;
-	void updateMessages(List<String> messageIds, EbMSMessageStatus oldStatus, EbMSMessageStatus newStatus) throws DAOException;
+	long insertMessage(Date timestamp, Date persistTime, EbMSMessage message, EbMSMessageStatus status) throws DAOException;
+	long insertDuplicateMessage(Date timestamp, EbMSMessage message) throws DAOException;
+	int updateMessage(long id, EbMSMessageStatus oldStatus, EbMSMessageStatus newStatus) throws DAOException;
+	void updateMessages(List<Long> ids, EbMSMessageStatus oldStatus, EbMSMessageStatus newStatus) throws DAOException;
 
-	void deleteAttachments(String messageId);
-	void deleteAttachments(List<String> messageIds);
+	void deleteAttachments(long ebMSMessageId);
+	void deleteAttachments(List<Long> ebMSMessageIds);
 
 	List<EbMSEvent> getEventsBefore(Date timestamp) throws DAOException;
 	void insertEvent(EbMSEvent event) throws DAOException;
 	void updateEvent(EbMSEvent event) throws DAOException;
-	void deleteEvent(String messageId) throws DAOException;
-	void insertEventLog(String messageId, Date timestamp, String uri, EbMSEventStatus status, String errorMessage) throws DAOException;
+	void deleteEvent(long ebMSMessageId) throws DAOException;
+	void insertEventLog(long ebMSMessageId, Date timestamp, String uri, EbMSEventStatus status, String errorMessage) throws DAOException;
 
 	List<EbMSMessageEvent> getEbMSMessageEvents(EbMSMessageContext messageContext, EbMSMessageEventType[] types) throws DAOException;
 	List<EbMSMessageEvent> getEbMSMessageEvents(EbMSMessageContext messageContext, EbMSMessageEventType[] types, int maxNr) throws DAOException;
-	void insertEbMSMessageEvent(String messageId, EbMSMessageEventType eventType) throws DAOException;
-	int processEbMSMessageEvent(String messageId) throws DAOException;
-	void processEbMSMessageEvents(List<String> messageIds) throws DAOException;
+	void insertEbMSMessageEvent(long ebMSMessageId, EbMSMessageEventType eventType) throws DAOException;
+	int processEbMSMessageEvent(long ebMSMessageId) throws DAOException;
+	void processEbMSMessageEvents(List<Long> ebMSMessageIds) throws DAOException;
 	
 	Date getPersistTime(String messageId);
 

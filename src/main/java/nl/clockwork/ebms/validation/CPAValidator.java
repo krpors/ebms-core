@@ -118,7 +118,7 @@ public class CPAValidator
 			}
 	}
 
-	private void validateChannels(CollaborationProtocolAgreement cpa)
+	private void validateChannels(CollaborationProtocolAgreement cpa) throws ValidationException
 	{
 		for (PartyInfo partyInfo : cpa.getPartyInfo())
 			for (DeliveryChannel deliveryChannel : partyInfo.getDeliveryChannel())
@@ -127,8 +127,8 @@ public class CPAValidator
 					logger.warn("Message Order as defined in DocExchange " + ((DocExchange)deliveryChannel.getDocExchangeId()).getDocExchangeId() + " not implemented!");
 				if (SyncReplyModeType.SIGNALS_ONLY.equals(deliveryChannel.getMessagingCharacteristics().getSyncReplyMode()) || SyncReplyModeType.SIGNALS_AND_RESPONSE.equals(deliveryChannel.getMessagingCharacteristics().getSyncReplyMode()))
 					logger.warn("Business signals defined in Channel " + deliveryChannel.getChannelId() + " not supported!");
-				if (PerMessageCharacteristicsType.NEVER.equals(deliveryChannel.getMessagingCharacteristics().getDuplicateElimination()))
-					logger.warn("Duplicate Elimination defined in Channel " + deliveryChannel.getChannelId() + " always enabled!");
+				if (CPAUtils.isReliableMessaging(deliveryChannel) && PerMessageCharacteristicsType.NEVER.equals(deliveryChannel.getMessagingCharacteristics().getDuplicateElimination()))
+					throw new ValidationException("Duplicate Elimination defined in Channel " + deliveryChannel.getChannelId() + " must be enabled!");
 				if (ActorType.URN_OASIS_NAMES_TC_EBXML_MSG_ACTOR_NEXT_MSH.equals(deliveryChannel.getMessagingCharacteristics().getActor()))
 					logger.warn("Actor NextMSH not supported!");
 				if (((DocExchange)deliveryChannel.getDocExchangeId()).getEbXMLReceiverBinding().getReceiverDigitalEnvelope() != null)

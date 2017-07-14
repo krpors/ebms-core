@@ -82,7 +82,7 @@ public class EbMSEventProcessor implements InitializingBean, Job
 						url = urlManager.getURL(url);
 					logger.info("Sending message " + event.getEbMSMessageId() + " to " + url);
 					EbMSDocument responseDocument = ebMSClient.sendMessage(url,requestDocument);
-					messageProcessor.processResponse(requestDocument,responseDocument);
+					messageProcessor.processResponse(event.getEbMSMessageId(),requestDocument,responseDocument);
 					eventManager.updateEvent(event,url,EbMSEventStatus.SUCCEEDED);
 				}
 				else

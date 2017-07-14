@@ -109,7 +109,7 @@ public class EbMSMessageValidator
 
 	public boolean isDuplicateMessage(EbMSMessage message)
 	{
-		return /*message.getMessageHeader().getDuplicateElimination()!= null && */ebMSDAO.existsMessage(message.getMessageHeader().getMessageData().getMessageId());
+		return message.getMessageHeader().getDuplicateElimination()!= null && ebMSDAO.existsMessage(message.getMessageHeader().getMessageData().getMessageId());
 	}
 	
 	public void setEbMSDAO(EbMSDAO ebMSDAO)

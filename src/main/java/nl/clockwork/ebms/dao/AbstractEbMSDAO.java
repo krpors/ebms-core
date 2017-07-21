@@ -488,9 +488,9 @@ public abstract class AbstractEbMSDAO implements EbMSDAO
 				" from ebms_message" + 
 				" where cpa_id = ?" +
 				" and ref_to_message_id = ?" +
-				" and message_nr = 0" +
 				(service == null ? "" : " and service = '" + EbMSMessageUtils.toString(service) + "'") +
-				(actions.length == 0 ? "" : " and action in ('" + StringUtils.join(actions,"','") + "')"),
+				(actions.length == 0 ? "" : " and action in ('" + StringUtils.join(actions,"','") + "')") +
+				" and status in (" + join(EbMSMessageStatus.getReceiveStatus().toArray(new EbMSMessageStatus[0])) + ")",
 				new ParameterizedRowMapper<EbMSMessageContext>()
 				{
 					@Override

@@ -15,8 +15,7 @@
  */
 package nl.clockwork.ebms.client;
 
-import javax.jms.ConnectionFactory;
-
+import org.apache.activemq.pool.PooledConnectionFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -41,6 +40,8 @@ public class DeliveryManagerConfig
 	{
 		DEFAULT, JMS;
 	}
+	@Value("${jms.brokerURL}")
+	String jmsBrokerUrl;
 	@Value("${deliveryManager.minThreads}")
 	Integer minThreads;
 	@Value("${deliveryManager.maxThreads}")
@@ -53,8 +54,6 @@ public class DeliveryManagerConfig
 	CPAManager cpaManager;
 	@Autowired
 	EbMSHttpClientFactory ebMSClientFactory;
-	@Autowired
-	ConnectionFactory connectionFactory;
 
 	@Bean("deliveryManagerTaskExecutor")
 	public ThreadPoolTaskExecutor deliveryManagerTaskExecutor()
@@ -82,6 +81,8 @@ public class DeliveryManagerConfig
 	@Conditional(jmsDeliveryManagerType.class)
 	public DeliveryManager jmsDeliveryManager()
 	{
+		val connectionFactory = new PooledConnectionFactory(jmsBrokerUrl);
+		connectionFactory.setMaxConnections(maxThreads);
 		return JMSDeliveryManager.jmsDeliveryManagerBuilder()
 				.messageQueue(new EbMSMessageQueue(maxEntries,timeout))
 				.cpaManager(cpaManager)

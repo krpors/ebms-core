@@ -100,7 +100,7 @@ public class DataSourceConfig
 		result.setClassName(driverClassName);
 		if (isolationLevel != null)
 			result.setIsolationLevel(isolationLevel.name());
-    result.setAllowLocalTransactions(false);
+    result.setAllowLocalTransactions(true);
     result.setDriverProperties(createDriverProperties());
     result.setMaxIdleTime(maxIdleTime);
     result.setMinPoolSize(minPoolSize);
@@ -121,7 +121,7 @@ public class DataSourceConfig
 		result.setXaProperties(createDriverProperties());
 		if (isolationLevel != null)
 			result.setDefaultIsolationLevel(isolationLevel.getLevelId());
-		result.setLocalTransactionMode(false);
+		result.setLocalTransactionMode(true);
 		result.setMaxIdleTime(maxIdleTime);
 		result.setMaxLifetime(maxLifetime);
 		result.setMinPoolSize(minPoolSize);

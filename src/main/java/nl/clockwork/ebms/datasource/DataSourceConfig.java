@@ -15,6 +15,7 @@
  */
 package nl.clockwork.ebms.datasource;
 
+import java.sql.SQLException;
 import java.util.Properties;
 import java.util.UUID;
 
@@ -27,7 +28,6 @@ import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Configuration;
 
 import com.atomikos.jdbc.AtomikosDataSourceBean;
-import com.atomikos.jdbc.internal.AtomikosSQLException;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import com.zaxxer.hikari.util.IsolationLevel;
@@ -100,20 +100,33 @@ public class DataSourceConfig
 		result.setClassName(driverClassName);
 		if (isolationLevel != null)
 			result.setIsolationLevel(isolationLevel.name());
-    result.setAllowLocalTransactions(true);
+    result.setAllowLocalTransactions(true); //false
     result.setDriverProperties(createDriverProperties());
     result.setMaxIdleTime(maxIdleTime);
     result.setMinPoolSize(minPoolSize);
     result.setMaxPoolSize(maxPoolSize);
-    result.setEnableJdbc4ConnectionTest(StringUtils.isEmpty(testQuery));
+    result.setEnableJdbc4ConnectionTest(StringUtils.isEmpty(testQuery)); //false
     result.setTestQuery(testQuery);
+		result.setAcquireIncrement(1);
+		result.setAcquisitionInterval(1);
+		result.setAcquisitionTimeout(30);
+    result.setApplyTransactionTimeout(false);
+		result.setAutomaticEnlistingEnabled(true);
+		result.setDeferConnectionRelease(true);
+		result.setDisabled(false);
+		result.setIgnoreRecoveryFailures(false);
+		result.setMaxIdleTime(60);
+		result.setPreparedStatementCacheSize(0);
+		result.setShareTransactionConnections(false);
+		result.setTwoPcOrderingPosition(1);
+		result.setUseTmJoin(true);
     result.init();
     return result;
 	}
 
 	@Bean(destroyMethod = "close")
 	@Conditional(AtomikosTransactionManagerType.class)
-	public DataSource atomikosDataSourceBean() throws AtomikosSQLException
+	public DataSource atomikosDataSourceBean() throws SQLException
 	{
 		val result = new AtomikosDataSourceBean();
 		result.setUniqueResourceName(UUID.randomUUID().toString());
@@ -128,6 +141,13 @@ public class DataSourceConfig
 		result.setMaxPoolSize(maxPoolSize);
 		if (StringUtils.isNotEmpty(testQuery))
 			result.setTestQuery(testQuery);
+		result.setBorrowConnectionTimeout(30);
+		result.setConcurrentConnectionValidation(true);
+		result.setLoginTimeout(0);
+		result.setMaintenanceInterval(60);
+		result.setMaxIdleTime(60);
+		result.setMaxLifetime(0);
+		result.setReapTimeout(0);
 		result.init();
 		return result;
 	}

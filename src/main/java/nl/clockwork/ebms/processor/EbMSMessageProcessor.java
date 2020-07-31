@@ -148,14 +148,14 @@ public class EbMSMessageProcessor
 			val message = EbMSMessageUtils.getEbMSMessage(document);
 			val cpaId = message.getMessageHeader().getCPAId();
 			if (!cpaManager.existsCPA(cpaId))
-				throw new EbMSProcessingException("CPA " + cpaId + " not found!");
+				throw new ValidationException("CPA " + cpaId + " not found!");
 			return processRequest(timestamp,document,message);
 		}
-		catch (ValidationException | JAXBException | SAXException | IOException | SOAPException | TransformerException e)
+		catch (JAXBException | SAXException | IOException | SOAPException | TransformerException e)
 		{
 			throw new EbMSProcessingException(e);
 		}
-		catch (ValidatorException | XPathExpressionException | ParserConfigurationException | DatatypeConfigurationException | TransformerFactoryConfigurationError e)
+		catch (XPathExpressionException | ParserConfigurationException | DatatypeConfigurationException | TransformerFactoryConfigurationError e)
 		{
 			throw new EbMSProcessorException(e);
 		}
@@ -258,7 +258,7 @@ public class EbMSMessageProcessor
 		{
 			throw new EbMSProcessingException(e);
 		}
-		catch (ValidatorException | XPathExpressionException | ParserConfigurationException e)
+		catch (XPathExpressionException | ParserConfigurationException e)
 		{
 			throw new EbMSProcessorException(e);
 		}

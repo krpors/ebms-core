@@ -103,7 +103,7 @@ class StatusResponseProcessor
 		{
 			return ebMSDAO.getMessageStatus(statusRequest.getStatusRequest().getRefToMessageId())
 					.map(s -> mapEbMSMessageStatusAndTimestamp(s,messageContext.getTimestamp()))
-					.orElseThrow(() -> new EbMSProcessingException("No message found!"));
+					.orElseThrow(() -> new EbMSProcessingException("Message " + statusRequest.getStatusRequest().getRefToMessageId() + " not found!"));
 		}
 	}
 

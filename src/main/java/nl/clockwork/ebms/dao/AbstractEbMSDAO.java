@@ -364,15 +364,8 @@ abstract class AbstractEbMSDAO implements EbMSDAO
 	@Override
 	public Optional<Instant> getPersistTime(String messageId)
 	{
-		try
-		{
-			return Optional.ofNullable(jdbcTemplate.queryForObject("select persist_time from ebms_message where message_id = ? and message_nr = 0",Timestamp.class,messageId))
-					.map(r -> r.toInstant());
-		}
-		catch(EmptyResultDataAccessException e)
-		{
-			return Optional.empty();
-		}
+		return Optional.ofNullable(jdbcTemplate.queryForObject("select persist_time from ebms_message where message_id = ? and message_nr = 0",Timestamp.class,messageId))
+				.map(r -> r.toInstant());
 	}
 
 	@Override

@@ -126,12 +126,13 @@ class MessageErrorProcessor
 						false));
 		}
 	}
+
 	public void processMessageError(Instant timestamp, EbMSDocument response, EbMSMessage requestMessage, EbMSMessageError messageError) throws TransformerException
 	{
 		try
 		{
-			messageValidator.validateMessageError(requestMessage,messageError,timestamp);
-			storeMessageError(timestamp,response,requestMessage,messageError);
+			messageValidator.validateMessageError(requestMessage,messageError);
+			storeMessageError(timestamp,response,messageError);
 		}
 		catch (DuplicateMessageException e)
 		{
@@ -141,7 +142,7 @@ class MessageErrorProcessor
 		{
 			val persistTime = ebMSDAO.getPersistTime(messageError.getMessageHeader().getMessageData().getRefToMessageId());
 			ebMSDAO.insertMessage(timestamp,persistTime.orElse(null),response.getMessage(),messageError,Collections.emptyList(),null);
-			log.warn("Unable to process MessageError " + messageError.getMessageHeader().getMessageData().getMessageId(),e);
+			log.warn("Unable to process MessageError {}",messageError.getMessageHeader().getMessageData().getMessageId(),e);
 		}
 	}
 	
@@ -149,11 +150,10 @@ class MessageErrorProcessor
 	{
 		val errorList = EbMSMessageUtils.createErrorList();
 		errorList.getError().add(e.getError());
-		val messageError = ebMSMessageFactory.createEbMSMessageError(message,errorList,timestamp);
-		return messageError;
+		return ebMSMessageFactory.createEbMSMessageError(message,errorList,timestamp);
 	}
 
-	public void storeMessageError(final Instant timestamp, final EbMSDocument messageErrorDocument, final EbMSMessage message, final EbMSMessageError messageError)
+	public void storeMessageError(final Instant timestamp, final EbMSDocument messageErrorDocument, final EbMSMessageError messageError)
 	{
 		val responseMessageHeader = messageError.getMessageHeader();
 		val persistTime = ebMSDAO.getPersistTime(responseMessageHeader.getMessageData().getRefToMessageId());

@@ -65,7 +65,7 @@ class MessageHeaderValidator
 		validateMessage(message,timestamp);
 	}
 
-	public void validate(EbMSBaseMessage message, Instant timestamp) throws EbMSValidationException
+	public void validate(EbMSBaseMessage message) throws EbMSValidationException
 	{
 		val messageHeader = message.getMessageHeader();
 		validateMessageHeader(messageHeader);
@@ -74,7 +74,7 @@ class MessageHeaderValidator
 				.orElseThrow(() -> new EbMSValidationException(EbMSMessageUtils.createError(EbMSErrorCode.UNKNOWN.getErrorCode(),EbMSErrorCode.UNKNOWN,"No DeliveryChannel found.")));
 	}
 
-	public void validate(EbMSAcknowledgment acknowledgment, Instant timestamp) throws EbMSValidationException
+	public void validate(EbMSAcknowledgment acknowledgment) throws EbMSValidationException
 	{
 		val messageHeader = acknowledgment.getMessageHeader();
 		validateMessageHeader(messageHeader);
@@ -196,12 +196,14 @@ class MessageHeaderValidator
 					EbMSMessageUtils.createError("//Header/AckRequested/@version",EbMSErrorCode.INCONSISTENT,"Invalid value."));
 		if (ackRequested != null && ackRequested.getActor() != null
 				&& !ackRequested.getActor().equals(ActorType.URN_OASIS_NAMES_TC_EBXML_MSG_ACTOR_TO_PARTY_MSH.value()))
+		{
 			if (ackRequested.getActor().equals(ActorType.URN_OASIS_NAMES_TC_EBXML_MSG_ACTOR_NEXT_MSH.value()))
 				throw new EbMSValidationException(
 						EbMSMessageUtils.createError("//Header/AckRequested/@actor",EbMSErrorCode.NOT_SUPPORTED,"NextMSH not supported."));
 			else
 				throw new EbMSValidationException(
 						EbMSMessageUtils.createError("//Header/AckRequested/@actor",EbMSErrorCode.INCONSISTENT,"Invalid value."));
+		}
 		if (!checkAckSignatureRequested(deliveryChannel,ackRequested))
 			throw new EbMSValidationException(
 					EbMSMessageUtils.createError("//Header/AckRequested/@signed",EbMSErrorCode.INCONSISTENT,"Wrong value."));
@@ -236,7 +238,7 @@ class MessageHeaderValidator
 		val deliveryChannel = cpaManager.getSendDeliveryChannel(messageHeader.getCPAId(),messageHeader.getFrom().getPartyId(),messageHeader.getFrom().getRole(),CPAUtils.toString(messageHeader.getService()),messageHeader.getAction())
 				.orElseThrow(() -> new EbMSValidationException(EbMSMessageUtils.createError(EbMSErrorCode.UNKNOWN.getErrorCode(),EbMSErrorCode.UNKNOWN,"No DeliveryChannel found.")));
 		val acknowledgment = message.getAcknowledgment();
-		if (acknowledgment != null && !Constants.EBMS_VERSION.equals(acknowledgment.getVersion()))
+		if (!Constants.EBMS_VERSION.equals(acknowledgment.getVersion()))
 			throw new EbMSValidationException(
 					EbMSMessageUtils.createError("//Header/Acknowledgment/@version",EbMSErrorCode.INCONSISTENT,"Invalid value."));
 		if (!checkActor(deliveryChannel,acknowledgment))
@@ -244,12 +246,14 @@ class MessageHeaderValidator
 					EbMSMessageUtils.createError("//Header/Acknowledgment/@actor",EbMSErrorCode.INCONSISTENT,"Wrong value."));
 		if (acknowledgment.getActor() != null
 				&& !acknowledgment.getActor().equals(ActorType.URN_OASIS_NAMES_TC_EBXML_MSG_ACTOR_TO_PARTY_MSH.value()))
+		{
 			if (acknowledgment.getActor().equals(ActorType.URN_OASIS_NAMES_TC_EBXML_MSG_ACTOR_NEXT_MSH.value()))
 				throw new EbMSValidationException(
 						EbMSMessageUtils.createError("//Header/Acknowledgment/@actor",EbMSErrorCode.NOT_SUPPORTED,"NextMSH not supported."));
 			else
 				throw new EbMSValidationException(
 						EbMSMessageUtils.createError("//Header/Acknowledgment/@actor",EbMSErrorCode.INCONSISTENT,"Invalid value."));
+		}
 		if (!checkAckSignatureRequested(deliveryChannel,acknowledgment))
 			throw new EbMSValidationException(
 					EbMSMessageUtils.createError("//Header/Acknowledgment/Reference",EbMSErrorCode.INCONSISTENT,"Wrong value."));
@@ -257,7 +261,7 @@ class MessageHeaderValidator
 
 	private boolean isValid(List<PartyId> partyIds)
 	{
-		return partyIds.stream().anyMatch(p -> !StringUtils.isEmpty(p.getType())|| isValidURI(p.getValue()));//FIXME replace by: org.apache.commons.validator.UrlValidator.isValid(partyId.getValue())
+		return partyIds.stream().anyMatch(p -> !StringUtils.isEmpty(p.getType()) || isValidURI(p.getValue()));//FIXME replace by: org.apache.commons.validator.UrlValidator.isValid(partyId.getValue())
 	}
 
 	private boolean isValidURI(String s)
@@ -336,8 +340,8 @@ class MessageHeaderValidator
 	private void compare(List<PartyId> requestPartyIds, List<PartyId> responsePartyIds) throws ValidationException
 	{
 		val anyMatch = requestPartyIds.stream()
-				.map(req -> EbMSMessageUtils.toString(req))
-				.anyMatch(req -> responsePartyIds.stream().map(res -> EbMSMessageUtils.toString(res)).anyMatch(res -> req.equals(res)));
+				.map(EbMSMessageUtils::toString)
+				.anyMatch(req -> responsePartyIds.stream().map(EbMSMessageUtils::toString).anyMatch(req::equals));
 		if (!anyMatch)
 			throw new ValidationException("Request PartyIds do not match response PartyIds");
     

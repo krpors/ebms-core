@@ -54,8 +54,6 @@ public class DeliveryManagerConfig
 	CPAManager cpaManager;
 	@Autowired
 	EbMSHttpClientFactory ebMSClientFactory;
-	@Autowired
-	ConnectionFactory connectionFactory;
 
 	@Bean("deliveryManagerTaskExecutor")
 	public ThreadPoolTaskExecutor deliveryManagerTaskExecutor()
@@ -69,7 +67,7 @@ public class DeliveryManagerConfig
 	}
 
 	@Bean
-	@Conditional(defaultDeliveryManagerType.class)
+	@Conditional(DefaultDeliveryManagerType.class)
 	public DeliveryManager defaultDeliveryManager()
 	{
 		return DeliveryManager.builder()
@@ -80,8 +78,8 @@ public class DeliveryManagerConfig
 	}
 
 	@Bean
-	@Conditional(jmsDeliveryManagerType.class)
-	public DeliveryManager jmsDeliveryManager()
+	@Conditional(JmsDeliveryManagerType.class)
+	public DeliveryManager jmsDeliveryManager(@Autowired ConnectionFactory connectionFactory)
 	{
 		return JMSDeliveryManager.jmsDeliveryManagerBuilder()
 				.messageQueue(new EbMSMessageQueue(maxEntries,timeout))
@@ -91,7 +89,7 @@ public class DeliveryManagerConfig
 				.build();
 	}
 
-	public static class defaultDeliveryManagerType implements Condition
+	public static class DefaultDeliveryManagerType implements Condition
 	{
 		@Override
 		public boolean matches(ConditionContext context, AnnotatedTypeMetadata metadata)
@@ -99,7 +97,7 @@ public class DeliveryManagerConfig
 			return context.getEnvironment().getProperty("deliveryManager.type",DeliveryManagerType.class,DeliveryManagerType.DEFAULT) == DeliveryManagerType.DEFAULT;
 		}
 	}
-	public static class jmsDeliveryManagerType implements Condition
+	public static class JmsDeliveryManagerType implements Condition
 	{
 		@Override
 		public boolean matches(ConditionContext context, AnnotatedTypeMetadata metadata)

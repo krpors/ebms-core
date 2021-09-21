@@ -16,7 +16,6 @@
 package nl.clockwork.ebms.delivery;
 
 import java.io.IOException;
-import java.security.cert.CertificateException;
 import java.util.Optional;
 
 import javax.xml.bind.JAXBException;
@@ -76,42 +75,37 @@ public class DeliveryManager
 			val messageHeader = message.getMessageHeader();
 			val uri = getUri(messageHeader);
 			if (message.getSyncReply() == null)
-			{
-				try
-				{
-					messageQueue.register(messageHeader.getMessageData().getMessageId());
-					log.info("Sending message " + messageHeader.getMessageData().getMessageId() + " to " + uri);
-					val response = createClient(messageHeader).sendMessage(uri,EbMSMessageUtils.getEbMSDocument(message));
-					if (response == null)
-						return messageQueue.get(messageHeader.getMessageData().getMessageId());
-					else
-					{
-						messageQueue.remove(messageHeader.getMessageData().getMessageId());
-						return Optional.of((EbMSResponseMessage)EbMSMessageUtils.getEbMSMessage(response));
-					}
-				}
-				catch (Exception e)
-				{
-					messageQueue.remove(messageHeader.getMessageData().getMessageId());
-					throw e;
-				}
-			}
+				return sendMessage(message,messageHeader,uri);
 			else
 			{
-				log.info("Sending message " + messageHeader.getMessageData().getMessageId() + " to " + uri);
+				log.info("Sending message {} to {}",messageHeader.getMessageData().getMessageId(),uri);
 				val response = createClient(messageHeader).sendMessage(uri,EbMSMessageUtils.getEbMSDocument(message));
 				if (response != null)
 					return Optional.of((EbMSResponseMessage)EbMSMessageUtils.getEbMSMessage(response));
 			}
 			return Optional.empty();
 		}
-		catch (SOAPException | JAXBException | SAXException | IOException | TransformerException | CertificateException e)
+		catch (SOAPException | JAXBException | SAXException | IOException | TransformerException e)
 		{
 			throw new EbMSProcessingException(e);
 		}
 		catch (ParserConfigurationException | TransformerFactoryConfigurationError | XPathExpressionException e)
 		{
 			throw new EbMSProcessorException(e);
+		}
+	}
+
+	private Optional<EbMSResponseMessage> sendMessage(final EbMSRequestMessage message, final MessageHeader messageHeader, final String uri) throws TransformerFactoryConfigurationError, EbMSProcessorException, SOAPException, JAXBException, ParserConfigurationException, SAXException, IOException, TransformerException, XPathExpressionException
+	{
+		messageQueue.register(messageHeader.getMessageData().getMessageId());
+		log.info("Sending message {} to {}",messageHeader.getMessageData().getMessageId(),uri);
+		val response = createClient(messageHeader).sendMessage(uri,EbMSMessageUtils.getEbMSDocument(message));
+		if (response == null)
+			return messageQueue.get(messageHeader.getMessageData().getMessageId());
+		else
+		{
+			messageQueue.remove(messageHeader.getMessageData().getMessageId());
+			return Optional.of((EbMSResponseMessage)EbMSMessageUtils.getEbMSMessage(response));
 		}
 	}
 
@@ -136,20 +130,20 @@ public class DeliveryManager
 		try
 		{
 			val messageHeader = response.getMessageHeader();
-			log.info("Sending message " + messageHeader.getMessageData().getMessageId() + " to " + uri);
+			log.info("Sending message {} to {}",messageHeader.getMessageData().getMessageId(),uri);
 			createClient(messageHeader).sendMessage(uri,EbMSMessageUtils.getEbMSDocument(response));
 		}
 		catch (EbMSProcessorException e)
 		{
 			throw e;
 		}
-		catch (CertificateException | SOAPException | JAXBException | ParserConfigurationException | SAXException | IOException | TransformerFactoryConfigurationError | TransformerException e)
+		catch (SOAPException | JAXBException | ParserConfigurationException | SAXException | IOException | TransformerFactoryConfigurationError | TransformerException e)
 		{
 			throw new EbMSProcessingException(e);
 		}
 	}
 
-	protected EbMSClient createClient(MessageHeader messageHeader) throws CertificateException
+	protected EbMSClient createClient(MessageHeader messageHeader)
 	{
 		String cpaId = messageHeader.getCPAId();
 		val sendDeliveryChannel = 

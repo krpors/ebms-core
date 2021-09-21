@@ -18,6 +18,7 @@ package nl.clockwork.ebms.delivery.client;
 import java.io.FilterOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 
@@ -37,11 +38,11 @@ class LoggingOutputStream extends FilterOutputStream
 	Map<String,List<String>> properties;
 	@NonNull
 	String charset;
-	StringBuffer sb = new StringBuffer();
+	StringBuilder sb = new StringBuilder();
 
 	public LoggingOutputStream(Map<String,List<String>> properties, OutputStream out)
 	{
-		this(properties,out,"UTF-8");
+		this(properties,out,StandardCharsets.UTF_8.name());
 	}
 
 	public LoggingOutputStream(@NonNull Map<String,List<String>> properties, @NonNull OutputStream out, @NonNull String charset)
@@ -78,7 +79,8 @@ class LoggingOutputStream extends FilterOutputStream
 	@Override
 	public void close() throws IOException
 	{
-		messageLog.debug(">>>>\n" + HTTPUtils.toString(this.properties) + "\n" + sb.toString());
+		if (messageLog.isDebugEnabled())
+			messageLog.debug(">>>>\n{}\n{}",HTTPUtils.toString(this.properties),sb);
 		super.close();
 	}
 

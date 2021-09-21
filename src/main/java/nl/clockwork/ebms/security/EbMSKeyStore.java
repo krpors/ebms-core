@@ -15,8 +15,6 @@
  */
 package nl.clockwork.ebms.security;
 
-import java.io.IOException;
-import java.security.GeneralSecurityException;
 import java.security.Key;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
@@ -31,6 +29,7 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.ToString;
+import lombok.val;
 import lombok.experimental.FieldDefaults;
 
 @FieldDefaults(level=AccessLevel.PRIVATE, makeFinal=true)
@@ -48,22 +47,18 @@ public class EbMSKeyStore
 	protected String keyPassword;
 	protected String defaultAlias;
 
-	public static EbMSKeyStore of(@NonNull KeyStoreType type, @NonNull String path, @NonNull String password, @NonNull String keyPassword) throws GeneralSecurityException, IOException
+	public static EbMSKeyStore of(@NonNull KeyStoreType type, @NonNull String path, @NonNull String password, @NonNull String keyPassword)
 	{
-		if (!keyStores.containsKey(path))
-			keyStores.put(path,new EbMSKeyStore(path,KeyStoreUtils.loadKeyStore(type,path,password),keyPassword,null));
-		return keyStores.get(path);
+		return keyStores.computeIfAbsent(path,key -> new EbMSKeyStore(path,KeyStoreUtils.loadKeyStore(type,key,password),keyPassword,null));
 	}
 
-	public static EbMSKeyStore of(@NonNull KeyStoreType type, @NonNull String path, @NonNull String password, @NonNull String keyPassword, @NonNull String defaultAlias) throws GeneralSecurityException, IOException
+	public static EbMSKeyStore of(@NonNull KeyStoreType type, @NonNull String path, @NonNull String password, @NonNull String keyPassword, @NonNull String defaultAlias)
 	{
-		String key = path + defaultAlias;
-		if (!keyStores.containsKey(key))
-			keyStores.put(key,new EbMSKeyStore(path,KeyStoreUtils.loadKeyStore(type,path,password),keyPassword,defaultAlias));
-		return keyStores.get(key);
+		val key = path + defaultAlias;
+		return keyStores.computeIfAbsent(key,k -> new EbMSKeyStore(path,KeyStoreUtils.loadKeyStore(type,path,password),keyPassword,defaultAlias));
 	}
 
-	public EbMSKeyStore(@NonNull String path, @NonNull KeyStore keyStore, String keyPassword, String defaultAlias) throws GeneralSecurityException, IOException
+	public EbMSKeyStore(@NonNull String path, @NonNull KeyStore keyStore, String keyPassword, String defaultAlias)
 	{
 		this.path = path;
 		this.keyStore = keyStore;

@@ -90,8 +90,7 @@ class CertificateMappingDAOImpl implements CertificateMappingDAO
 							new CertificateRowMapper(),
 							id)
 					: jdbcTemplate.query(
-							"select destination, cpa_id from certificate_mapping where id = ?" +
-							(getSpecific ? " and cpa_id = ?" : " and (cpa_id = ? or cpa_id is null)"),
+							"select destination, cpa_id from certificate_mapping where id = ?" + selectCpaId(getSpecific),
 							new CertificateRowMapper(),
 							id,
 							cpaId);
@@ -106,6 +105,11 @@ class CertificateMappingDAOImpl implements CertificateMappingDAO
 		{
 			return Optional.empty();
 		}
+	}
+
+	private String selectCpaId(boolean getSpecific)
+	{
+		return getSpecific ? " and cpa_id = ?" : " and (cpa_id = ? or cpa_id is null)";
 	}
 
 	@Override

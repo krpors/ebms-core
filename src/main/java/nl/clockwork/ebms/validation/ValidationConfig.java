@@ -33,14 +33,8 @@ public class ValidationConfig
 {
 	@Autowired
 	CPAManager cpaManager;
-	@Autowired
-	EbMSDAO ebMSDAO;
 	@Value("${https.clientCertificateAuthentication}")
 	boolean clientCertificateValidatorEnabled;
-	@Autowired
-	EbMSSignatureValidator signatureValidator;
-	@Autowired
-	EbMSMessageDecrypter messageDecrypter;
 
 	@Bean
 	public CPAValidator cpaValidator()
@@ -49,7 +43,7 @@ public class ValidationConfig
 	}
 
 	@Bean
-	public EbMSMessageValidator messageValidator()
+	public EbMSMessageValidator messageValidator(@Autowired EbMSDAO ebMSDAO, @Autowired EbMSSignatureValidator signatureValidator, @Autowired EbMSMessageDecrypter messageDecrypter)
 	{
 		return EbMSMessageValidator.builder()
 				.ebMSDAO(ebMSDAO)

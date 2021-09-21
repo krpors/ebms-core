@@ -15,50 +15,42 @@
  */
 package nl.clockwork.ebms.kafka;
 
-import nl.clockwork.ebms.delivery.task.DeliveryTask;
-import nl.clockwork.ebms.delivery.task.DeliveryTaskHandlerConfig;
-import nl.clockwork.ebms.model.EbMSMessageProperties;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.annotation.EnableKafka;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
-import org.springframework.kafka.core.*;
+import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
+import org.springframework.kafka.core.DefaultKafkaProducerFactory;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.core.ProducerFactory;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
 import org.springframework.kafka.support.serializer.JsonSerializer;
 import org.springframework.kafka.transaction.KafkaTransactionManager;
 import org.springframework.transaction.support.AbstractPlatformTransactionManager;
 
 import lombok.val;
-
-import javax.annotation.PostConstruct;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import nl.clockwork.ebms.delivery.task.DeliveryTask;
+import nl.clockwork.ebms.delivery.task.DeliveryTaskHandlerConfig;
+import nl.clockwork.ebms.model.EbMSMessageProperties;
 
 @Configuration
 @Conditional(DeliveryTaskHandlerConfig.KafkaTaskHandlerType.class)
 @EnableKafka
 public class KafkaConfig
 {
-	private static final Logger logger = LoggerFactory.getLogger(KafkaConfig.class);
-
+	private static final String OFFSET = "earliest";
 	@Value("${kafka.serverUrl}")
 	private String kafkaServerUrl;
-	private String OFFSET = "earliest";
-
-	@PostConstruct
-	public void init()
-	{
-		logger.info("init<KafkaConfig>");
-	}
 
 	@Bean
 	public ProducerFactory<String,EbMSMessageProperties> messagePropertiesProducerFactory()
@@ -75,14 +67,12 @@ public class KafkaConfig
 	@Bean(name = "deliveryTaskKafkaTemplate")
 	public KafkaTemplate<String,DeliveryTask> deliveryTaskKafkaTemplate()
 	{
-		logger.info("Initializing deliveryTaskKafkaTemplate");
 		return new KafkaTemplate<>(deliveryTaskProducerFactory());
 	}
 
 	@Bean(name = "messagePropertiesKafkaTemplate")
 	public KafkaTemplate<String,EbMSMessageProperties> messagePropertiesKafkaTemplate()
 	{
-		logger.info("Initializing messagePropertiesKafkaTemplate");
 		return new KafkaTemplate<>(messagePropertiesProducerFactory());
 	}
 
@@ -125,7 +115,7 @@ public class KafkaConfig
 	{
 		val deliveryTaskDeserializer = new JsonDeserializer<>(DeliveryTask.class);
 		deliveryTaskDeserializer.addTrustedPackages("nl.clockwork.ebms.delivery.task.DeliveryTask");
-		return new DefaultKafkaConsumerFactory<String,DeliveryTask>(consumerConfigurations(),new StringDeserializer(),deliveryTaskDeserializer);
+		return new DefaultKafkaConsumerFactory<>(consumerConfigurations(),new StringDeserializer(),deliveryTaskDeserializer);
 	}
 
 	@Bean
@@ -146,7 +136,7 @@ public class KafkaConfig
 	@Bean
 	public KafkaTransactionManager<String,DeliveryTask> deliveryTaskKafkaTransactionManager()
 	{
-		KafkaTransactionManager<String,DeliveryTask> ktm = new KafkaTransactionManager<String,DeliveryTask>(deliveryTaskProducerFactory());
+		val ktm = new KafkaTransactionManager<String,DeliveryTask>(deliveryTaskProducerFactory());
 		ktm.setTransactionSynchronization(AbstractPlatformTransactionManager.SYNCHRONIZATION_ON_ACTUAL_TRANSACTION);
 		return ktm;
 	}
@@ -154,7 +144,7 @@ public class KafkaConfig
 	@Bean
 	public KafkaTransactionManager<String,EbMSMessageProperties> messagePropertiesKafkaTransactionManager()
 	{
-		KafkaTransactionManager<String,EbMSMessageProperties> ktm = new KafkaTransactionManager<String,EbMSMessageProperties>(messagePropertiesProducerFactory());
+		val ktm = new KafkaTransactionManager<String,EbMSMessageProperties>(messagePropertiesProducerFactory());
 		ktm.setTransactionSynchronization(AbstractPlatformTransactionManager.SYNCHRONIZATION_ON_ACTUAL_TRANSACTION);
 		return ktm;
 	}

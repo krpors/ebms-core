@@ -34,7 +34,7 @@ public class LoggingUtils
 		DISABLED, ENABLED;
 	}
 
-	public static Status mdc;
+	public static Status mdc = Status.DISABLED;
 
 	public static Map<String,String> getPropertyMap(MessageHeader header)
 	{

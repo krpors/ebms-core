@@ -282,12 +282,6 @@ public class EbMSMessageUtilsTest
 
 	
 	@Test
-	public void getEbMSDocument()
-	{
-		
-	}
-	
-	@Test
 	public void createEbMSMessageSOAPMessage() throws Exception
 	{
 		val builder = EbMSMessage.builder()

@@ -15,7 +15,11 @@
  */
 package nl.clockwork.ebms;
 
-import java.util.ArrayList;
+import static io.vavr.API.$;
+import static io.vavr.API.Case;
+import static io.vavr.API.Match;
+
+import java.util.Collections;
 import java.util.List;
 
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.AckRequested;
@@ -29,7 +33,7 @@ import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.StatusResponse;
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.SyncReply;
 import org.w3._2000._09.xmldsig.SignatureType;
 
-import static io.vavr.API.*;
+import lombok.NoArgsConstructor;
 import lombok.NonNull;
 import nl.clockwork.ebms.cpa.CPAUtils;
 import nl.clockwork.ebms.model.EbMSAcknowledgment;
@@ -43,6 +47,7 @@ import nl.clockwork.ebms.model.EbMSStatusRequest;
 import nl.clockwork.ebms.model.EbMSStatusResponse;
 import nl.clockwork.ebms.processor.EbMSProcessingException;
 
+@NoArgsConstructor
 public class EbMSMessageBuilder
 {
 	private MessageHeader messageHeader;
@@ -55,12 +60,8 @@ public class EbMSMessageBuilder
 	private StatusRequest statusRequest;
 	private StatusResponse statusResponse;
 	private SignatureType signature;
-	private boolean attachments$set;
-	private List<EbMSAttachment> attachments$value;
-
-	public EbMSMessageBuilder()
-	{
-	}
+	private boolean hasAttachments;
+	private List<EbMSAttachment> attachments;
 
 	public EbMSMessageBuilder messageHeader(@NonNull final MessageHeader messageHeader)
 	{
@@ -124,8 +125,8 @@ public class EbMSMessageBuilder
 
 	public EbMSMessageBuilder attachments(@NonNull final List<EbMSAttachment> attachments)
 	{
-		this.attachments$value = attachments;
-		attachments$set = true;
+		this.attachments = attachments;
+		hasAttachments = true;
 		return this;
 	}
 
@@ -133,8 +134,6 @@ public class EbMSMessageBuilder
 	{
 		try
 		{
-			List<EbMSAttachment> attachments$value = this.attachments$value;
-			if (!this.attachments$set) attachments$value = new ArrayList<EbMSAttachment>();
 			if (!EbMSAction.EBMS_SERVICE_URI.equals(messageHeader.getService().getValue()))
 				return EbMSMessage.builder()
 						.messageHeader(messageHeader)
@@ -143,7 +142,7 @@ public class EbMSMessageBuilder
 						.messageOrder(messageOrder)
 						.ackRequested(ackRequested)
 						.manifest(manifest)
-						.attachments(attachments$value)
+						.attachments(this.hasAttachments ? this.attachments : Collections.emptyList())
 						.build();
 			else
 				return Match(messageHeader.getAction()).of(
@@ -170,6 +169,6 @@ public class EbMSMessageBuilder
 	@java.lang.Override
 	public java.lang.String toString()
 	{
-		return "EbMSMessage.EbMSMessageBuilder(messageHeader=" + this.messageHeader + ", syncReply=" + this.syncReply + ", messageOrder=" + this.messageOrder + ", ackRequested=" + this.ackRequested + ", errorList=" + this.errorList + ", acknowledgment=" + this.acknowledgment + ", manifest=" + this.manifest + ", statusRequest=" + this.statusRequest + ", statusResponse=" + this.statusResponse + ", signature=" + this.signature + ", attachments$value=" + this.attachments$value + ")";
+		return "EbMSMessage.EbMSMessageBuilder(messageHeader=" + this.messageHeader + ", syncReply=" + this.syncReply + ", messageOrder=" + this.messageOrder + ", ackRequested=" + this.ackRequested + ", errorList=" + this.errorList + ", acknowledgment=" + this.acknowledgment + ", manifest=" + this.manifest + ", statusRequest=" + this.statusRequest + ", statusResponse=" + this.statusResponse + ", signature=" + this.signature + ", attachments$value=" + this.attachments + ")";
 	}
 }

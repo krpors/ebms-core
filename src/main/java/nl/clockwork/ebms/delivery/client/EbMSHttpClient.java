@@ -57,7 +57,7 @@ class EbMSHttpClient implements EbMSClient
 			@Cleanup("disconnect") val connection = (HttpURLConnection)openConnection(uri);
 			connection.setConnectTimeout(connectTimeout);
 			connection.setReadTimeout(readTimeout);
-			if (chunkedStreaming(uri))
+			if (chunkedStreaming())
 				connection.setChunkedStreamingMode(0);
 			val writer = base64Writer ? new EbMSMessageBase64Writer(connection) : new EbMSMessageWriter(connection);
 			writer.write(document);
@@ -71,15 +71,14 @@ class EbMSHttpClient implements EbMSClient
 		}
 	}
 	
-	public boolean chunkedStreaming(String uri)
+	public boolean chunkedStreaming()
 	{
 		return chunkedStreamingMode;
 	}
 
 	private URLConnection openConnection(String uri) throws IOException
 	{
-		val url = new URL(uri);
-		val connection = openConnection(url);
+		val connection = openConnection(new URL(uri));
 		connection.setDoOutput(true);
 		//connection.setMethod("POST");
 		if (connection instanceof HttpsURLConnection)

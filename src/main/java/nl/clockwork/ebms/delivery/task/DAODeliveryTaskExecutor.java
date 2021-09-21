@@ -74,7 +74,7 @@ class DAODeliveryTaskExecutor implements Runnable
 				{
 					log.error("",e);
 				}
-				futures.forEach(f -> Try.of(() -> f.get()).onFailure(e -> log.error("",e)));
+				futures.forEach(f -> Try.of(f::get).onFailure(e -> log.error("",e)));
   		};
   		try
   		{

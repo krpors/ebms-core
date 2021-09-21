@@ -17,7 +17,6 @@ package nl.clockwork.ebms.server.servlet;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
@@ -95,14 +94,13 @@ public class BasicAuthenticationFilter implements Filter
 			}
 			return false;
 		}
-		catch (NoSuchAlgorithmException | UnsupportedEncodingException e)
+		catch (NoSuchAlgorithmException e)
 		{
 			throw new ServletException(e);
 		}
 	}
 
-	//TODO: support all allowed password encodings
-	private boolean validate(String savedPassword, String password) throws NoSuchAlgorithmException, UnsupportedEncodingException
+	private boolean validate(String savedPassword, String password) throws NoSuchAlgorithmException
 	{
 		if (savedPassword.startsWith("MD5:"))
 			return toMD5(password).equals(savedPassword);
@@ -114,7 +112,7 @@ public class BasicAuthenticationFilter implements Filter
 			return password.equals(savedPassword);
 	}
 
-	private String toMD5(String s) throws NoSuchAlgorithmException, UnsupportedEncodingException
+	private String toMD5(String s)
 	{
 		return "MD5:" + DigestUtils.md5Hex(s);
 	}
@@ -122,6 +120,7 @@ public class BasicAuthenticationFilter implements Filter
 	@Override
 	public void destroy()
 	{
+		// Do nothing
 	}
 
 }

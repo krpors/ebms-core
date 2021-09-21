@@ -22,6 +22,10 @@ import java.util.stream.Stream;
 
 import org.springframework.util.StringUtils;
 
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
+
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class HTTPUtils
 {
 	public static String getCharSet(String contentType)

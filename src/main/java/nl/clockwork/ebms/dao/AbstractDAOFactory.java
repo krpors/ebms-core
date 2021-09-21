@@ -28,6 +28,7 @@ import com.atomikos.jdbc.AtomikosDataSourceBean;
 import com.zaxxer.hikari.HikariDataSource;
 
 import bitronix.tm.resource.jdbc.PoolingDataSource;
+import io.vavr.Predicates;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.NonNull;
@@ -59,18 +60,21 @@ public abstract class AbstractDAOFactory<T> implements FactoryBean<T>
 				Case($(contains("postgresql")),o -> createPostgreSQLDAO()),
 				Case($(contains("sqlserver")),o -> createMSSQLDAO()),
 				Case($(),o -> {
-					throw new RuntimeException("Jdbc url " + driverClassName + " not recognized!");
+					throw new IllegalStateException("Jdbc url " + driverClassName + " not recognized!");
 				}));
 	}
 
 	public static String getDriverClassName(DataSource dataSource)
 	{
-		return dataSource instanceof HikariDataSource ? ((HikariDataSource)dataSource).getDriverClassName() : 
-			dataSource  instanceof PoolingDataSource ? ((PoolingDataSource)dataSource).getClassName() : ((AtomikosDataSourceBean)dataSource).getXaDataSourceClassName();
+		return Match(dataSource).of(
+			Case($(Predicates.instanceOf(HikariDataSource.class)), o -> ((HikariDataSource)dataSource).getDriverClassName()),
+			Case($(Predicates.instanceOf(PoolingDataSource.class)), o -> ((PoolingDataSource)dataSource).getClassName()),
+			Case($(Predicates.instanceOf(AtomikosDataSourceBean.class)), o -> ((AtomikosDataSourceBean)dataSource).getXaDataSourceClassName()),
+			Case($(),o -> {
+				throw new IllegalStateException("DataSource " + dataSource + " not recognized!");
+			})
+		);
 	}
-
-	@Override
-	public abstract Class<T> getObjectType();
 
 	@Override
 	public boolean isSingleton()
@@ -94,7 +98,7 @@ public abstract class AbstractDAOFactory<T> implements FactoryBean<T>
 
 	public abstract static class DefaultDAOFactory<U> extends AbstractDAOFactory<U>
 	{
-		public DefaultDAOFactory(@NonNull DataSource dataSource)
+		protected DefaultDAOFactory(@NonNull DataSource dataSource)
 		{
 			super(dataSource);
 		}
@@ -102,43 +106,43 @@ public abstract class AbstractDAOFactory<T> implements FactoryBean<T>
 		@Override
 		public U createDB2DAO()
 		{
-			throw new RuntimeException("DB2 not supported!");
+			throw new IllegalStateException("DB2 not supported!");
 		}
 
 		@Override
 		public U createH2DAO()
 		{
-			throw new RuntimeException("H2 not supported!");
+			throw new IllegalStateException("H2 not supported!");
 		}
 
 		@Override
 		public U createHSQLDBDAO()
 		{
-			throw new RuntimeException("HSQLDB not supported!");
+			throw new IllegalStateException("HSQLDB not supported!");
 		}
 
 		@Override
 		public U createMSSQLDAO()
 		{
-			throw new RuntimeException("MSSQL not supported!");
+			throw new IllegalStateException("MSSQL not supported!");
 		}
 
 		@Override
 		public U createMySQLDAO()
 		{
-			throw new RuntimeException("MySQL not supported!");
+			throw new IllegalStateException("MySQL not supported!");
 		}
 
 		@Override
 		public U createOracleDAO()
 		{
-			throw new RuntimeException("Oracle not supported!");
+			throw new IllegalStateException("Oracle not supported!");
 		}
 
 		@Override
 		public U createPostgreSQLDAO()
 		{
-			throw new RuntimeException("Postgres not supported!");
+			throw new IllegalStateException("Postgres not supported!");
 		}
 	}
 

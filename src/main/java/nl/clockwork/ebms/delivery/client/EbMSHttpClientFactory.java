@@ -15,7 +15,10 @@
  */
 package nl.clockwork.ebms.delivery.client;
 
+import java.security.KeyManagementException;
 import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Map;
@@ -66,7 +69,7 @@ public class EbMSHttpClientFactory
 	boolean useClientCertificate;
 	@NonNull
 	@Default
-	Map<String,EbMSClient> clients = new ConcurrentHashMap<String,EbMSClient>();
+	Map<String,EbMSClient> clients = new ConcurrentHashMap<>();
 
 	private EbMSClient createEbMSClient(String clientAlias)
 	{
@@ -80,16 +83,14 @@ public class EbMSHttpClientFactory
 		}
 		catch (Exception e)
 		{
-			throw new RuntimeException(e);
+			throw new IllegalStateException(e);
 		}
 	}
 
 	public EbMSClient getEbMSClient(String clientAlias)
 	{
 		val key = clientAlias == null ? "" : clientAlias;
-		if (!clients.containsKey(key))
-			clients.put(key,createEbMSClient(clientAlias));
-		return clients.get(key);
+		return clients.computeIfAbsent(key,k -> createEbMSClient(clientAlias));
 	}
 
 	public EbMSClient getEbMSClient(String cpaId, DeliveryChannel sendDeliveryChannel)
@@ -102,7 +103,7 @@ public class EbMSHttpClientFactory
 		}
 		catch (CertificateException | KeyStoreException e)
 		{
-			throw new RuntimeException(e);
+			throw new IllegalStateException(e);
 		}
 	}
 
@@ -116,7 +117,7 @@ public class EbMSHttpClientFactory
 		return useClientCertificate && deliveryChannel != null ? certificateMapper.getCertificate(CPAUtils.getX509Certificate(CPAUtils.getClientCertificate(deliveryChannel)),cpaId) : null;
 	}
 
-	private SSLFactoryManager createSslFactoryManager(String clientAlias) throws Exception
+	private SSLFactoryManager createSslFactoryManager(String clientAlias) throws UnrecoverableKeyException, KeyManagementException, NoSuchAlgorithmException, KeyStoreException
 	{
 		return SSLFactoryManager.builder()
 				.keyStore(keyStore)

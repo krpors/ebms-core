@@ -15,8 +15,6 @@
  */
 package nl.clockwork.ebms.security;
 
-import java.io.IOException;
-import java.security.GeneralSecurityException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.cert.Certificate;
@@ -40,14 +38,12 @@ public class EbMSTrustStore
 	@NonNull
 	KeyStore keyStore;
 
-	public static EbMSTrustStore of(KeyStoreType type, String path, String password) throws GeneralSecurityException, IOException
+	public static EbMSTrustStore of(KeyStoreType type, String path, String password)
 	{
-		if (!trustStores.containsKey(path))
-			trustStores.put(path,new EbMSTrustStore(KeyStoreUtils.loadKeyStore(type,path,password)));
-		return trustStores.get(path);
+		return trustStores.computeIfAbsent(path,key -> new EbMSTrustStore(KeyStoreUtils.loadKeyStore(type,key,password)));
 	}
 	
-	public EbMSTrustStore(@NonNull KeyStore keyStore) throws GeneralSecurityException, IOException
+	public EbMSTrustStore(@NonNull KeyStore keyStore)
 	{
 		this.keyStore = keyStore;
 	}

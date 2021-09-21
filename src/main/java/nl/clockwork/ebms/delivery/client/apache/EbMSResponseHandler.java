@@ -26,7 +26,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
-import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.ResponseHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,7 +46,7 @@ class EbMSResponseHandler implements ResponseHandler<EbMSDocument>
 	private static final Logger messageLog = LoggerFactory.getLogger(Constants.MESSAGE_LOG);
 
 	@Override
-	public EbMSDocument handleResponse(HttpResponse response) throws ClientProtocolException, IOException
+	public EbMSDocument handleResponse(HttpResponse response) throws IOException
 	{
 		try
 		{
@@ -56,7 +55,7 @@ class EbMSResponseHandler implements ResponseHandler<EbMSDocument>
 				val entity = response.getEntity();
 				if (response.getStatusLine().getStatusCode() == HttpServletResponse.SC_NO_CONTENT || entity == null || entity.getContentLength() == 0)
 				{
-					messageLog.info("<<<<\nStatusCode=" + response.getStatusLine().getStatusCode());
+					messageLog.info("<<<<\nStatusCode={}",response.getStatusLine().getStatusCode());
 					return null;
 				}
 				else
@@ -65,15 +64,15 @@ class EbMSResponseHandler implements ResponseHandler<EbMSDocument>
 					{
 						val messageReader = new EbMSMessageReader(getHeaderField(response,"Content-ID"),getHeaderField(response,"Content-Type"));
 						val message = IOUtils.toString(input,getEncoding(entity));
-		      	messageLog.info("<<<<\nStatusCode=" + response.getStatusLine().getStatusCode() + "\n" + message);
+		      	messageLog.info("<<<<\nStatusCode={}\n{}",response.getStatusLine().getStatusCode(),message);
 						return messageReader.readResponse(message);
 					}
 				}
 			}
 			else if (response.getStatusLine().getStatusCode() >= HttpServletResponse.SC_BAD_REQUEST)
 			{
-		    val entity = response.getEntity();
-		    if (entity != null)
+				val entity = response.getEntity();
+				if (entity != null)
 					throw new IOException("StatusCode=" + response.getStatusLine().getStatusCode() + "\n" + IOUtils.toString(entity.getContent(),Charset.defaultCharset()));
 			}
 			throw new IOException("StatusCode=" + response.getStatusLine().getStatusCode());

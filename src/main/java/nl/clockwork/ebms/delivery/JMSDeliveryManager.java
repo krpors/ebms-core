@@ -16,7 +16,6 @@
 package nl.clockwork.ebms.delivery;
 
 import java.io.IOException;
-import java.security.cert.CertificateException;
 import java.util.Optional;
 
 import javax.xml.bind.JAXBException;
@@ -36,7 +35,6 @@ import lombok.NonNull;
 import lombok.val;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
-import nl.clockwork.ebms.Constants;
 import nl.clockwork.ebms.EbMSMessageUtils;
 import nl.clockwork.ebms.cpa.CPAManager;
 import nl.clockwork.ebms.delivery.client.EbMSHttpClientFactory;
@@ -51,6 +49,7 @@ import nl.clockwork.ebms.processor.EbMSProcessorException;
 public class JMSDeliveryManager extends DeliveryManager
 {
 	private static final String JMS_DESTINATION_NAME = "MESSAGE";
+	private static final int MINUTE_IN_MILLIS = 60000;
 	@NonNull
 	JmsTemplate jmsTemplate;
 
@@ -72,18 +71,18 @@ public class JMSDeliveryManager extends DeliveryManager
 		{
 			val messageHeader = message.getMessageHeader();
 			val uri = getUri(messageHeader);
-			log.info("Sending message " + messageHeader.getMessageData().getMessageId() + " to " + uri);
+			log.info("Sending message {} to {}",messageHeader.getMessageData().getMessageId(),uri);
 			val response = createClient(messageHeader).sendMessage(uri,EbMSMessageUtils.getEbMSDocument(message));
 			if (response != null)
 				return Optional.of((EbMSResponseMessage)EbMSMessageUtils.getEbMSMessage(response));
 			else if (message.getSyncReply() == null)
 			{
-				jmsTemplate.setReceiveTimeout(3 * Constants.MINUTE_IN_MILLIS);
+				jmsTemplate.setReceiveTimeout(3L * MINUTE_IN_MILLIS);
 				return Optional.ofNullable((EbMSResponseMessage)jmsTemplate.receiveSelectedAndConvert(JMS_DESTINATION_NAME,"JMSCorrelationID='" + messageHeader.getMessageData().getMessageId() + "'"));
 			}
 			return Optional.empty();
 		}
-		catch (SOAPException | JAXBException | SAXException | IOException | TransformerException | CertificateException e)
+		catch (SOAPException | JAXBException | SAXException | IOException | TransformerException e)
 		{
 			throw new EbMSProcessingException(e);
 		}
@@ -97,7 +96,7 @@ public class JMSDeliveryManager extends DeliveryManager
 	public void handleResponseMessage(final EbMSResponseMessage message) throws EbMSProcessorException
 	{
 		jmsTemplate.setExplicitQosEnabled(true);
-		jmsTemplate.setTimeToLive(Constants.MINUTE_IN_MILLIS);
+		jmsTemplate.setTimeToLive(MINUTE_IN_MILLIS);
 		jmsTemplate.convertAndSend(JMS_DESTINATION_NAME,message,m ->
 		{
 			m.setJMSCorrelationID(message.getMessageHeader().getMessageData().getRefToMessageId());
@@ -112,10 +111,10 @@ public class JMSDeliveryManager extends DeliveryManager
 	{
 		try
 		{
-			log.info("Sending message " + response.getMessageHeader().getMessageData().getMessageId() + " to " + uri);
+			log.info("Sending message {} to {}",response.getMessageHeader().getMessageData().getMessageId(),uri);
 			createClient(response.getMessageHeader()).sendMessage(uri,EbMSMessageUtils.getEbMSDocument(response));
 		}
-		catch (CertificateException | SOAPException | JAXBException | ParserConfigurationException | SAXException | IOException | TransformerFactoryConfigurationError | TransformerException e)
+		catch (SOAPException | JAXBException | ParserConfigurationException | SAXException | IOException | TransformerFactoryConfigurationError | TransformerException e)
 		{
 			throw new EbMSProcessingException(e);
 		}

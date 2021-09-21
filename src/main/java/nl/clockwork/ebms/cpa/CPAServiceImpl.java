@@ -61,13 +61,13 @@ public class CPAServiceImpl implements CPAService, WithService
 		{
 			log.debug("ValidateCPA");
 			xsdValidator.validate(cpa);
-			val cpa_ = JAXBParser.getInstance(CollaborationProtocolAgreement.class).handleUnsafe(cpa);
-			log.info("Validating CPA " + cpa_.getCpaid());
-			cpaValidator.validate(cpa_);
+			val _cpa = JAXBParser.getInstance(CollaborationProtocolAgreement.class).handleUnsafe(cpa);
+			log.info("Validating CPA {}",_cpa.getCpaid());
+			cpaValidator.validate(_cpa);
 		}
 		catch (Exception e)
 		{
-			log.error("ValidateCPA\n" + cpa,e);
+			log.error("ValidateCPA\n{}",cpa,e);
 			throw toServiceException(new CPAServiceException(e));
 		}
 	}
@@ -82,15 +82,15 @@ public class CPAServiceImpl implements CPAService, WithService
 		{
 			log.debug("InsertCPA");
 			xsdValidator.validate(cpa);
-			val cpa_ = JAXBParser.getInstance(CollaborationProtocolAgreement.class).handleUnsafe(cpa);
-			new CPAValidator(cpaManager).validate(cpa_);
-			cpaManager.setCPA(cpa_,overwrite);
+			val _cpa = JAXBParser.getInstance(CollaborationProtocolAgreement.class).handleUnsafe(cpa);
+			new CPAValidator(cpaManager).validate(_cpa);
+			cpaManager.setCPA(_cpa,overwrite);
 			log.debug("InsertCPA done");
-			return cpa_.getCpaid();
+			return _cpa.getCpaid();
 		}
 		catch (Exception e)
 		{
-			log.error("InsertCPA\n" + cpa,e);
+			log.error("InsertCPA\n{}",cpa,e);
 			throw toServiceException(new CPAServiceException(e));
 		}
 	}
@@ -102,18 +102,18 @@ public class CPAServiceImpl implements CPAService, WithService
 	{
 		try
 		{
-			log.debug("DeleteCPA " + cpaId);
+			log.debug("DeleteCPA {}",cpaId);
 			if (cpaManager.deleteCPA(cpaId) == 0)
 				throw new CPANotFoundException();
 		}
 		catch (CPAServiceException e)
 		{
-			log.error("DeleteCPA " + cpaId,e);
+			log.error("DeleteCPA {}",cpaId,e);
 			throw toServiceException(e);
 		}
 		catch (Exception e)
 		{
-			log.error("DeleteCPA " + cpaId,e);
+			log.error("DeleteCPA {}",cpaId,e);
 			throw toServiceException(new CPAServiceException(e));
 		}
 	}
@@ -143,12 +143,12 @@ public class CPAServiceImpl implements CPAService, WithService
 	{
 		try
 		{
-			log.debug("GetCPAId " + cpaId);
+			log.debug("GetCPAId {}",cpaId);
 			return JAXBParser.getInstance(CollaborationProtocolAgreement.class).handle(cpaManager.getCPA(cpaId).orElse(null));
 		}
 		catch (Exception e)
 		{
-			log.error("GetCPAId " + cpaId,e);
+			log.error("GetCPAId {}",cpaId,e);
 			throw toServiceException(new CPAServiceException(e));
 		}
 	}

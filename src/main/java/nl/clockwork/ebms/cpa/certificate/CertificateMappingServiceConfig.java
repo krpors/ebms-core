@@ -30,23 +30,20 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class CertificateMappingServiceConfig
 {
-	@Autowired
-	DataSource dataSource;
-
 	@Bean
-	public CertificateMappingService certificateMappingService()
+	public CertificateMappingService certificateMappingService(@Autowired CertificateMapper certificateMapper)
 	{
-		return new CertificateMappingServiceImpl(certificateMapper());
+		return new CertificateMappingServiceImpl(certificateMapper);
 	}
 
 	@Bean
-	public CertificateMapper certificateMapper()
+	public CertificateMapper certificateMapper(@Autowired CertificateMappingDAO certificateMappingDAO)
 	{
-		return new CertificateMapper(certificateMappingDAO());
+		return new CertificateMapper(certificateMappingDAO);
 	}
 
 	@Bean
-	public CertificateMappingDAO certificateMappingDAO()
+	public CertificateMappingDAO certificateMappingDAO(@Autowired DataSource dataSource)
 	{
 		val jdbcTemplate = new JdbcTemplate(dataSource);
 		return new CertificateMappingDAOImpl(jdbcTemplate);

@@ -57,7 +57,7 @@ class SSLFactoryManager
 			@NonNull EbMSTrustStore trustStore,
 			String[] enabledProtocols,
 			String[] enabledCipherSuites,
-			boolean requireClientAuthentication) throws Exception
+			boolean requireClientAuthentication) throws UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, KeyManagementException
 	{
 		this.keyStore = keyStore;
 		this.trustStore = trustStore;

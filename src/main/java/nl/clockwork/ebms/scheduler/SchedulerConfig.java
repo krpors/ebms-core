@@ -72,15 +72,10 @@ public class SchedulerConfig
 					.filter(l -> jdbcUrl.startsWith(l.jdbcUrl))
 					.map(l -> l.driverDelegateClass)
 					.findFirst()
-					.get();
+					.orElseThrow(() -> new IllegalStateException("JdbcUrl not found"));
 		}
 	}
 
-	@Autowired
-	@Qualifier("dataSourceTransactionManager")
-	PlatformTransactionManager dataSourceTransactionManager;
-	@Autowired
-	DataSource dataSource;
 	@Value("${deliveryTaskHandler.type}")
 	DeliveryTaskHandlerType deliveryTaskHandlerType;
 	@Value("${deliveryTaskHandler.quartz.jdbc.driverClassName}")
@@ -116,7 +111,10 @@ public class SchedulerConfig
 
 	@Bean
 	@Conditional(QuartzTaskHandlerType.class)
-	public SchedulerFactoryBean scheduler(JobFactory jobFactory)
+	public SchedulerFactoryBean scheduler(
+		JobFactory jobFactory,
+		@Autowired @Qualifier("dataSourceTransactionManager") PlatformTransactionManager dataSourceTransactionManager,
+		@Autowired DataSource dataSource)
 	{
 		val result = new SchedulerFactoryBean();
     result.setQuartzProperties(quartzProperties());

@@ -15,9 +15,6 @@
  */
 package nl.clockwork.ebms.security.azure;
 
-import java.io.IOException;
-import java.security.GeneralSecurityException;
-
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Conditional;
@@ -40,9 +37,8 @@ public class KeyStoreConfig
 	String trustStorepath;
 	@Value("${truststore.password}")
 	String trustStorepassword;
-	
 	@Value("azure.keyvault.uri")
-    String keyvaultURI;
+	String keyvaultURI;
 	@Value("azure.keyvault.tennantid")
 	String tennantID;
 	@Value("azure.keyvault.clientid")
@@ -54,26 +50,26 @@ public class KeyStoreConfig
 	String clientKeyStoreDefaultAlias;
 
 	@Bean
-	public EbMSTrustStore trustStore() throws GeneralSecurityException, IOException
+	public EbMSTrustStore trustStore()
 	{
 		return EbMSTrustStore.of(trustStoretype,trustStorepath,trustStorepassword);		
 	}
 
 	@Bean("clientKeyStore")
-	public EbMSKeyStore clientKeyStore() throws GeneralSecurityException, IOException
+	public EbMSKeyStore clientKeyStore()
 	{
-		return AzureKeyStore.of(keyvaultURI, tennantID, clientID, clientSecret, clientKeyStoreDefaultAlias);
+		return AzureKeyStore.of(keyvaultURI,tennantID,clientID,clientSecret,clientKeyStoreDefaultAlias);
 	}
 
 	@Bean("signatureKeyStore")
-	public EbMSKeyStore signatureKeyStore() throws GeneralSecurityException, IOException
+	public EbMSKeyStore signatureKeyStore()
 	{
-		return AzureKeyStore.of(keyvaultURI, tennantID, clientID, clientSecret);
+		return AzureKeyStore.of(keyvaultURI,tennantID,clientID,clientSecret);
 	}
 
 	@Bean("encryptionKeyStore")
-	public EbMSKeyStore encryptionKeyStore() throws GeneralSecurityException, IOException
+	public EbMSKeyStore encryptionKeyStore()
 	{
-		return AzureKeyStore.of(keyvaultURI, tennantID, clientID, clientSecret);
+		return AzureKeyStore.of(keyvaultURI,tennantID,clientID,clientSecret);
 	}
 }

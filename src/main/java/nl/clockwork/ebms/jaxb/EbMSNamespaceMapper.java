@@ -17,7 +17,9 @@ package nl.clockwork.ebms.jaxb;
 
 import static io.vavr.API.*;
 
-public class EbMSNamespaceMapper extends com.sun.xml.bind.marshaller.NamespacePrefixMapper
+import com.sun.xml.bind.marshaller.NamespacePrefixMapper;
+
+public class EbMSNamespaceMapper extends NamespacePrefixMapper
 {
 	@Override
 	public String getPreferredPrefix(String namespaceUri, String suggestion, boolean requirePrefix)

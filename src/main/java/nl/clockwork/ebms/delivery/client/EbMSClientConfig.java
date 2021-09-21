@@ -60,11 +60,6 @@ public class EbMSClientConfig
 	String[] enabledCipherSuites;
 	@Value("${https.verifyHostnames}")
 	boolean verifyHostnames;
-	@Autowired
-	@Qualifier("clientKeyStore")
-	EbMSKeyStore clientKeyStore;
-	@Autowired
-	EbMSTrustStore trustStore;
 	@Value("${http.errors.informational.recoverable}")
 	String recoverableInformationalHttpErrors;
 	@Value("${http.errors.redirection.recoverable}")
@@ -73,13 +68,14 @@ public class EbMSClientConfig
 	String recoverableClientHttpErrors;
 	@Value("${http.errors.server.unrecoverable}")
 	String unrecoverableServerHttpErrors;
-	@Autowired
-	CertificateMapper certificateMapper;
 	@Value("${https.useClientCertificate}")
 	boolean useClientCertificate;
 
 	@Bean
-	public EbMSHttpClientFactory ebMSClientFactory()
+	public EbMSHttpClientFactory ebMSClientFactory(
+		@Autowired @Qualifier("clientKeyStore") EbMSKeyStore clientKeyStore,
+		@Autowired EbMSTrustStore trustStore,
+		@Autowired CertificateMapper certificateMapper)
 	{
 		return EbMSHttpClientFactory.builder()
 				.type(ebMSHttpClientType)

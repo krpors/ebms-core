@@ -36,22 +36,6 @@ import nl.clockwork.ebms.validation.EbMSMessageValidator;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class EbMSProcessorConfig
 {
-	@Autowired
-	DeliveryManager deliveryManager;
-	@Autowired
-	MessageEventListener messageEventListener;
-	@Autowired
-	EbMSDAO ebMSDAO;
-	@Autowired
-	CPAManager cpaManager;
-	@Autowired
-	EbMSMessageFactory ebMSMessageFactory;
-	@Autowired
-	DeliveryTaskManager deliveryTaskManager;
-	@Autowired
-	EbMSSignatureGenerator signatureGenerator;
-	@Autowired
-	EbMSMessageValidator messageValidator;
 	@Value("${ebmsMessage.deleteContentOnProcessed}")
 	boolean deleteEbMSAttachmentsOnMessageProcessed;
 	@Value("${ebmsMessage.storeDuplicate}")
@@ -60,7 +44,15 @@ public class EbMSProcessorConfig
 	boolean storeDuplicateMessageAttachments;
 	
 	@Bean
-	public EbMSMessageProcessor messageProcessor()
+	public EbMSMessageProcessor messageProcessor(
+		@Autowired EbMSDAO ebMSDAO,
+		@Autowired CPAManager cpaManager,
+		@Autowired DeliveryTaskManager deliveryTaskManager,
+		@Autowired EbMSMessageValidator messageValidator,
+		@Autowired DeliveryManager deliveryManager,
+		@Autowired MessageEventListener messageEventListener,
+		@Autowired EbMSMessageFactory ebMSMessageFactory,
+		@Autowired EbMSSignatureGenerator signatureGenerator)
 	{
 		val duplicateMessageHandler = DuplicateMessageHandler.builder()
 				.ebMSDAO(ebMSDAO)

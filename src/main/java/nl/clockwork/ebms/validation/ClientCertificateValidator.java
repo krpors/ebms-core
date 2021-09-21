@@ -46,6 +46,7 @@ class ClientCertificateValidator
 		@Override
 		public void validate(EbMSBaseMessage message) throws ValidatorException
 		{
+			// Do nothing
 		}
 	}
 

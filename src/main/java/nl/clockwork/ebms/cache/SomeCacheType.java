@@ -26,6 +26,6 @@ public class SomeCacheType implements Condition
 	@Override
 	public boolean matches(ConditionContext context, AnnotatedTypeMetadata metadata)
 	{
-		return context.getEnvironment().getProperty("cache.type",CacheType.class,CacheType.DEFAULT) != CacheType.NONE;
+		return context.getEnvironment().getProperty(CacheConfig.CACHE_TYPE,CacheType.class,CacheType.DEFAULT) != CacheType.NONE;
 	}
 }

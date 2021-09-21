@@ -52,7 +52,8 @@ public class AutowiringSpringBeanJobFactory extends SpringBeanJobFactory
 	{
 		this.applicationContext = applicationContext;
 	}
-	
+
+	@Override
 	public void setSchedulerContext(SchedulerContext schedulerContext)
 	{
 		this.schedulerContext = schedulerContext;

@@ -21,15 +21,18 @@ import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlElement;
 
+import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NonNull;
+import lombok.experimental.FieldDefaults;
 import nl.clockwork.ebms.event.MessageEventType;
 
 @XmlAccessorType(XmlAccessType.FIELD)
 @Builder
 @Data
+@FieldDefaults(level = AccessLevel.PRIVATE)
 @AllArgsConstructor
 public class MessageEvent implements Serializable
 {

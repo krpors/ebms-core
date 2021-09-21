@@ -53,23 +53,21 @@ public class TransactionManagerConfig
 	{
 		DEFAULT, BITRONIX, ATOMIKOS;
 	}
+
+	private static final String TRANSACTION_MANAGER_TYPE = "transactionManager.type";
 	@Value("${transactionManager.transactionTimeout}")
 	int transactionTimeout;
-	@Autowired
-	DataSource dataSource;
-	@Autowired
-	ConnectionFactory connectionFactory;
 
 	@Bean("dataSourceTransactionManager")
 	@Conditional(DefaultTransactionManagerType.class)
-	public PlatformTransactionManager dataSourceTransactionManager()
+	public PlatformTransactionManager dataSourceTransactionManager(@Autowired DataSource dataSource)
 	{
 		return new DataSourceTransactionManager(dataSource);
 	}
 
 	@Bean("jmsTransactionManager")
 	@Conditional(DefaultTransactionManagerType.class)
-	public PlatformTransactionManager jmsTransactionManager()
+	public PlatformTransactionManager jmsTransactionManager(@Autowired ConnectionFactory connectionFactory)
 	{
 		return new JmsTransactionManager(connectionFactory);
 	}
@@ -85,7 +83,7 @@ public class TransactionManagerConfig
 
 	@Bean(name = {"dataSourceTransactionManager","jmsTransactionManager"})
 	@Conditional(AtomikosTransactionManagerType.class)
-	public JtaTransactionManager AtomikosJtaTransactionManager() throws SystemException
+	public JtaTransactionManager atomikosJtaTransactionManager() throws SystemException
 	{
 		val transactionManager = new UserTransactionManager();
 		transactionManager.setTransactionTimeout(transactionTimeout);
@@ -109,7 +107,7 @@ public class TransactionManagerConfig
 		@Override
 		public boolean matches(ConditionContext context, AnnotatedTypeMetadata metadata)
 		{
-			return context.getEnvironment().getProperty("transactionManager.type",TransactionManagerType.class,TransactionManagerType.DEFAULT) == TransactionManagerType.DEFAULT;
+			return context.getEnvironment().getProperty(TRANSACTION_MANAGER_TYPE,TransactionManagerType.class,TransactionManagerType.DEFAULT) == TransactionManagerType.DEFAULT;
 		}
 	}
 	public static class BitronixTransactionManagerType implements Condition
@@ -117,7 +115,7 @@ public class TransactionManagerConfig
 		@Override
 		public boolean matches(ConditionContext context, AnnotatedTypeMetadata metadata)
 		{
-			return context.getEnvironment().getProperty("transactionManager.type",TransactionManagerType.class,TransactionManagerType.DEFAULT) == TransactionManagerType.BITRONIX;
+			return context.getEnvironment().getProperty(TRANSACTION_MANAGER_TYPE,TransactionManagerType.class,TransactionManagerType.DEFAULT) == TransactionManagerType.BITRONIX;
 		}
 	}
 	public static class AtomikosTransactionManagerType implements Condition
@@ -125,7 +123,7 @@ public class TransactionManagerConfig
 		@Override
 		public boolean matches(ConditionContext context, AnnotatedTypeMetadata metadata)
 		{
-			return context.getEnvironment().getProperty("transactionManager.type",TransactionManagerType.class,TransactionManagerType.DEFAULT) == TransactionManagerType.ATOMIKOS;
+			return context.getEnvironment().getProperty(TRANSACTION_MANAGER_TYPE,TransactionManagerType.class,TransactionManagerType.DEFAULT) == TransactionManagerType.ATOMIKOS;
 		}
 	}
 }

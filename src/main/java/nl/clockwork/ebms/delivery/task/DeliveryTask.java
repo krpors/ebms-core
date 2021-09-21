@@ -17,13 +17,16 @@ package nl.clockwork.ebms.delivery.task;
 
 import java.time.Instant;
 
+import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NonNull;
+import lombok.experimental.FieldDefaults;
 
 @Builder
 @Data
+@FieldDefaults(level = AccessLevel.PRIVATE)
 @AllArgsConstructor
 public class DeliveryTask
 {

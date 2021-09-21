@@ -35,39 +35,31 @@ import nl.clockwork.ebms.validation.MessagePropertiesValidator;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class EbMSMessageServiceConfig
 {
-	@Autowired
-	CPAManager cpaManager;
-	@Autowired
-	DeliveryManager deliveryManager;
-	@Autowired
-	EbMSDAO ebMSDAO;
-	@Autowired
-	MessageEventDAO messageEventDAO;
-	@Autowired
-	EbMSMessageFactory ebMSMessageFactory;
-	@Autowired
-	DeliveryTaskManager deliveryTaskManager;
-	@Autowired
-	MessagePropertiesValidator messagePropertiesValidator;
-	@Autowired
-	EbMSSignatureGenerator signatureGenerator;
 	@Value("${ebmsMessage.deleteContentOnProcessed}")
 	boolean deleteEbMSAttachmentsOnMessageProcessed;
 
 	@Bean
-	public EbMSMessageServiceImpl ebMSMessageService()
+	public EbMSMessageServiceImpl ebMSMessageService(@Autowired EbMSMessageServiceHandler ebMSMessageServiceHandler)
 	{
-		return new EbMSMessageServiceImpl(ebMSMessageServiceHandler());
+		return new EbMSMessageServiceImpl(ebMSMessageServiceHandler);
 	}
 
 	@Bean
-	public EbMSMessageServiceMTOM ebMSMessageServiceMTOM()
+	public EbMSMessageServiceMTOM ebMSMessageServiceMTOM(@Autowired EbMSMessageServiceHandler ebMSMessageServiceHandler)
 	{
-		return new EbMSMessageServiceMTOMImpl(ebMSMessageServiceHandler());
+		return new EbMSMessageServiceMTOMImpl(ebMSMessageServiceHandler);
 	}
 
 	@Bean
-	public EbMSMessageServiceHandler ebMSMessageServiceHandler()
+	public EbMSMessageServiceHandler ebMSMessageServiceHandler(
+		@Autowired DeliveryManager deliveryManager,
+		@Autowired EbMSDAO ebMSDAO,
+		@Autowired MessageEventDAO messageEventDAO,
+		@Autowired CPAManager cpaManager,
+		@Autowired EbMSMessageFactory ebMSMessageFactory,
+		@Autowired DeliveryTaskManager deliveryTaskManager,
+		@Autowired MessagePropertiesValidator messagePropertiesValidator,
+		@Autowired EbMSSignatureGenerator signatureGenerator)
 	{
 		return EbMSMessageServiceHandler.builder()
 				.deliveryManager(deliveryManager)

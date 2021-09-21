@@ -23,24 +23,24 @@ class LoggingMessageEventListener implements MessageEventListener
 	@Override
 	public void onMessageReceived(String messageId) throws MessageEventException
 	{
-		log.info("Received message " + messageId);
+		log.info("Received message {}",messageId);
 	}
 
 	@Override
 	public void onMessageDelivered(String messageId) throws MessageEventException
 	{
-		log.info("Delivered message " + messageId);
+		log.info("Delivered message {}",messageId);
 	}
 	
 	@Override
 	public void onMessageFailed(String messageId) throws MessageEventException
 	{
-		log.info("Failed message " + messageId);
+		log.info("Failed message {}",messageId);
 	}
 
 	@Override
 	public void onMessageExpired(String messageId) throws MessageEventException
 	{
-		log.info("Expired message " + messageId);
+		log.info("Expired message {}",messageId);
 	}
 }

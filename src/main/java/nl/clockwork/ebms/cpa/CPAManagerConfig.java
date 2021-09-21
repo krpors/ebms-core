@@ -31,19 +31,14 @@ import nl.clockwork.ebms.cpa.url.URLMapper;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class CPAManagerConfig
 {
-	@Autowired
-	URLMapper urlMapper;
-	@Autowired
-	DataSource dataSource;
-
 	@Bean
-	public CPAManager cpaManager()
+	public CPAManager cpaManager(@Autowired CPADAO cpaDAO, @Autowired URLMapper urlMapper)
 	{
-		return new CPAManager(cpaDAO(),urlMapper);
+		return new CPAManager(cpaDAO,urlMapper);
 	}
 
 	@Bean
-	public CPADAO cpaDAO()
+	public CPADAO cpaDAO(@Autowired DataSource dataSource)
 	{
 		val jdbcTemplate = new JdbcTemplate(dataSource);
 		return new CPADAOImpl(jdbcTemplate);

@@ -16,6 +16,8 @@
 package nl.clockwork.ebms.server.servlet;
 
 import java.io.IOException;
+import java.security.Principal;
+import java.security.cert.X509Certificate;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -48,10 +50,12 @@ public class UserRateLimiterFilter implements Filter
 	@Override
 	public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException
 	{
-		val subject = Optional.ofNullable(ClientCertificateManager.getCertificate()).map(c -> c.getSubjectDN().toString()).orElse("");
-		if (!rateLimiters.containsKey(subject))
-			rateLimiters.put(subject,RateLimiter.create(queriesPerSecond));
-		rateLimiters.get(subject).acquire();
+		val subject = Optional.ofNullable(ClientCertificateManager.getCertificate())
+				.map(X509Certificate::getSubjectDN)
+				.map(Principal::toString)
+				.orElse("");
+		rateLimiters.computeIfAbsent(subject,k -> RateLimiter.create(queriesPerSecond))
+				.acquire();
 		chain.doFilter(request,response);
 	}
 }

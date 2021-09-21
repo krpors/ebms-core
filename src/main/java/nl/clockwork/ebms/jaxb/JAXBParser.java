@@ -18,6 +18,7 @@ package nl.clockwork.ebms.jaxb;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.util.HashMap;
+import java.util.Map;
 
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBElement;
@@ -27,14 +28,14 @@ import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParserFactory;
 import javax.xml.transform.sax.SAXSource;
 
+import com.sun.xml.bind.marshaller.NamespacePrefixMapper;
+
 import org.apache.commons.lang3.StringUtils;
 import org.w3c.dom.Node;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 import org.xml.sax.SAXNotRecognizedException;
 import org.xml.sax.SAXNotSupportedException;
-
-import com.sun.xml.bind.marshaller.NamespacePrefixMapper;
 
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -45,17 +46,19 @@ import lombok.experimental.FieldDefaults;
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class JAXBParser<T>
 {
-	private static HashMap<Class<?>,JAXBParser<?>> xmlHandlers = new HashMap<>();
-	private static SAXParserFactory saxParserFactory;
+	private static Map<Class<?>,JAXBParser<?>> xmlHandlers = new HashMap<>();
+	private static SAXParserFactory saxParserFactory = createSAXParserFactory();
 	JAXBContext context;
 
+	public static SAXParserFactory createSAXParserFactory()
 	{
 		try
 		{
-			saxParserFactory = SAXParserFactory.newInstance();
-			saxParserFactory.setFeature("http://xml.org/sax/features/external-general-entities", false);
-			saxParserFactory.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
-			saxParserFactory.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
+			val result = SAXParserFactory.newInstance();
+			result.setFeature("http://xml.org/sax/features/external-general-entities", false);
+			result.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
+			result.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
+			return result;
 		}
 		catch (SAXNotRecognizedException | SAXNotSupportedException | ParserConfigurationException e)
 		{
@@ -150,7 +153,7 @@ public class JAXBParser<T>
 		if (xmlHandlers.get(clazz) == null)
 		{
 			val context = JAXBContext.newInstance(clazz);
-			xmlHandlers.put(clazz,new JAXBParser<L>(context));
+			xmlHandlers.put(clazz,new JAXBParser<>(context));
 		}
 		return (JAXBParser<L>)xmlHandlers.get(clazz);
 	}
@@ -161,7 +164,7 @@ public class JAXBParser<T>
 		if (xmlHandlers.get(clazz) == null)
 		{
 			val context = JAXBContext.newInstance(clazzes);
-			xmlHandlers.put(clazz,new JAXBParser<L>(context));
+			xmlHandlers.put(clazz,new JAXBParser<>(context));
 		}
 		return (JAXBParser<L>)xmlHandlers.get(clazz);
 	}

@@ -58,7 +58,7 @@ public class CPAUtils
 {
 	public static boolean equals(List<PartyId> cpaPartyIds, List<org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.PartyId> headerPartyIds)
 	{
-		return headerPartyIds.size() > 0 && headerPartyIds.size() <= cpaPartyIds.size() && containsAll(cpaPartyIds,headerPartyIds);
+		return !headerPartyIds.isEmpty() && headerPartyIds.size() <= cpaPartyIds.size() && containsAll(cpaPartyIds,headerPartyIds);
 	}
 
 	public static String toString(PartyId partyId)
@@ -73,7 +73,7 @@ public class CPAUtils
 
 	public static String toString(List<org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.PartyId> partyId)
 	{
-		return partyId.stream().map(id -> toString(id)).collect(Collectors.joining(","));
+		return partyId.stream().map(CPAUtils::toString).collect(Collectors.joining(","));
 	}
 
 	public static String toString(ServiceType service)
@@ -130,12 +130,12 @@ public class CPAUtils
 
 	public static DeliveryChannel getDeliveryChannel(ActionBindingType bindingType)
 	{
-		return (DeliveryChannel)((JAXBElement<Object>)bindingType.getChannelId().get(0)).getValue();
+		return (DeliveryChannel)(bindingType.getChannelId().get(0)).getValue();
 	}
 	
 	public static DeliveryChannel getDeliveryChannel(List<JAXBElement<Object>> channelIds)
 	{
-		if (channelIds.size() > 0)
+		if (!channelIds.isEmpty())
 			return (DeliveryChannel)channelIds.get(0).getValue();
 		else
 			return null;
@@ -299,10 +299,10 @@ public class CPAUtils
 	private static boolean containsAll(List<PartyId> cpaPartyIds, List<org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.PartyId> headerPartyIds)
 	{
 		return headerPartyIds.stream()
-				.map(headerPartyId -> EbMSMessageUtils.toString(headerPartyId))
+				.map(EbMSMessageUtils::toString)
 				.allMatch(headerPartyId -> cpaPartyIds.stream()
-						.map(cpaPartyId -> toString(cpaPartyId))
-						.anyMatch(cpaPartyId -> headerPartyId.equals(cpaPartyId)));
+						.map(CPAUtils::toString)
+						.anyMatch(headerPartyId::equals));
 	}
 
 }

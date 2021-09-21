@@ -22,6 +22,7 @@ import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -186,7 +187,7 @@ public class SigningTest
 	private List<DataSource> createDataSources()
 	{
 		val result = new ArrayList<DataSource>();
-		result.add(new DataSource("test.txt",null,"plain/text; charset=utf-8","Dit is een test.".getBytes(Charset.forName("UTF-8"))));
+		result.add(new DataSource("test.txt",null,"plain/text; charset=utf-8","Dit is een test.".getBytes(Charset.forName(StandardCharsets.UTF_8.name()))));
 		return result;
 	}
 
@@ -199,7 +200,7 @@ public class SigningTest
 
 	private javax.activation.DataSource createDataSource()
 	{
-		return EbMSAttachmentFactory.createEbMSAttachment("test.txt","plain/text; charset=utf-8","Dit is een andere test.".getBytes(Charset.forName("UTF-8"))); 
+		return EbMSAttachmentFactory.createEbMSAttachment("test.txt","plain/text; charset=utf-8","Dit is een andere test.".getBytes(Charset.forName(StandardCharsets.UTF_8.name()))); 
 	}
 
 	private String createContentId(String messageId, int i)

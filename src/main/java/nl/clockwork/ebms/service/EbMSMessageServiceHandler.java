@@ -96,7 +96,7 @@ class EbMSMessageServiceHandler
 	{
 		try
 		{
-			log.debug("Ping " + cpaId);
+			log.debug("Ping {}",cpaId);
 			messagePropertiesValidator.validate(cpaId,fromPartyId,toPartyId);
 			val request = ebMSMessageFactory.createEbMSPing(cpaId,fromPartyId,toPartyId);
 			val response = deliveryManager.sendMessage(request);
@@ -110,7 +110,7 @@ class EbMSMessageServiceHandler
 		}
 		catch (Exception e)
 		{
-			log.error("Ping " + cpaId,e);
+			log.error("Ping {}",cpaId,e);
 			throw new EbMSMessageServiceException(e);
 		}
 	}
@@ -128,12 +128,12 @@ class EbMSMessageServiceHandler
 			signatureGenerator.generate(document,message);
 			storeMessage(document.getMessage(),message);
 			val result = message.getMessageHeader().getMessageData().getMessageId();
-			log.info("Created message " + result);
+			log.info("Created message {}",result);
 			return result;
 		}
 		catch (Exception e)
 		{
-			log.error("SendMessage " + messageRequest,e);
+			log.error("SendMessage {}",messageRequest,e);
 			throw new EbMSMessageServiceException(e);
 		}
 	}
@@ -151,12 +151,12 @@ class EbMSMessageServiceHandler
 			signatureGenerator.generate(document,message);
 			storeMessage(document.getMessage(),message);
 			String result = message.getMessageHeader().getMessageData().getMessageId();
-			log.info("Created message " + result);
+			log.info("Created message {}",result);
 			return result;
 		}
 		catch (Exception e)
 		{
-			log.error("SendMessage " + messageRequest,e);
+			log.error("SendMessage {}",messageRequest,e);
 			throw new EbMSMessageServiceException(e);
 		}
 	}
@@ -165,7 +165,7 @@ class EbMSMessageServiceHandler
 	{
 		try
 		{
-			log.debug("ResendMessage " + messageId);
+			log.debug("ResendMessage {}",messageId);
 			return ebMSDAO.getMessage(messageId).map(p ->
 			{
 				try
@@ -179,7 +179,7 @@ class EbMSMessageServiceHandler
 					signatureGenerator.generate(document,message);
 					storeMessage(document.getMessage(),message);
 					val newMessageId = message.getMessageHeader().getMessageData().getMessageId();
-					log.info("Created message " + newMessageId);
+					log.info("Created message {}",newMessageId);
 					return newMessageId;
 				}
 				catch (SOAPException | JAXBException | ParserConfigurationException | SAXException | IOException | TransformerFactoryConfigurationError | TransformerException e)
@@ -190,12 +190,12 @@ class EbMSMessageServiceHandler
 		}
 		catch (EbMSMessageServiceException e)
 		{
-			log.error("ResendMessage " + messageId);
+			log.error("ResendMessage {}",messageId);
 			throw e;
 		}
 		catch (Exception e)
 		{
-			log.error("ResendMessage " + messageId);
+			log.error("ResendMessage {}",messageId);
 			throw new EbMSMessageServiceException(e);
 		}
 	}
@@ -209,7 +209,7 @@ class EbMSMessageServiceHandler
 		}
 		catch (Exception e)
 		{
-			log.error("GetMessageIds " + messageFilter,e);
+			log.error("GetMessageIds {}",messageFilter,e);
 			throw new EbMSMessageServiceException(e);
 		}
 	}
@@ -218,19 +218,19 @@ class EbMSMessageServiceHandler
 	{
 		try
 		{
-			log.debug("GetMessage " + messageId);
+			log.debug("GetMessage {}",messageId);
 			if (process != null && process)
 				processMessage(messageId);
 			return ebMSDAO.getMessage(messageId).orElseThrow(NotFoundException::new);
 		}
 		catch (EbMSMessageServiceException e)
 		{
-			log.error("GetMessage " + messageId,e);
+			log.error("GetMessage {}",messageId,e);
 			throw e;
 		}
 		catch (Exception e)
 		{
-			log.error("GetMessage " + messageId,e);
+			log.error("GetMessage {}",messageId,e);
 			throw new EbMSMessageServiceException(e);
 		}
 	}
@@ -239,19 +239,19 @@ class EbMSMessageServiceHandler
 	{
 		try
 		{
-			log.debug("GetMessage " + messageId);
+			log.debug("GetMessage {}",messageId);
 			if (process != null && process)
 				processMessage(messageId);
 			return ebMSDAO.getMTOMMessage(messageId).orElseThrow(NotFoundException::new);
 		}
 		catch (EbMSMessageServiceException e)
 		{
-			log.error("GetMessage " + messageId,e);
+			log.error("GetMessage {}",messageId,e);
 			throw e;
 		}
 		catch (Exception e)
 		{
-			log.error("GetMessage " + messageId,e);
+			log.error("GetMessage {}",messageId,e);
 			throw new EbMSMessageServiceException(e);
 		}
 	}
@@ -260,18 +260,18 @@ class EbMSMessageServiceHandler
 	{
 		try
 		{
-			log.debug("ProcessMessage " + messageId);
+			log.debug("ProcessMessage {}",messageId);
 			Runnable runnable = () ->
 			{
 				if (ebMSDAO.updateMessage(messageId,EbMSMessageStatus.RECEIVED,EbMSMessageStatus.PROCESSED) > 0 && deleteEbMSAttachmentsOnMessageProcessed)
 					ebMSDAO.deleteAttachments(messageId);
 			};
 			ebMSDAO.executeTransaction(runnable);
-			log.info("Processed message " + messageId);
+			log.info("Processed message {}",messageId);
 		}
 		catch (Exception e)
 		{
-			log.error("ProcessMessage " + messageId,e);
+			log.error("ProcessMessage {}",messageId,e);
 			throw new EbMSMessageServiceException(e);
 		}
 	}
@@ -280,19 +280,19 @@ class EbMSMessageServiceHandler
 	{
 		try
 		{
-			log.debug("GetMessageStatus " + messageId);
+			log.debug("GetMessageStatus {}",messageId);
 			return ebMSDAO.getEbMSMessageProperties(messageId)
 					.map(p -> getMessageStatus(messageId,p))
 					.orElseThrow(() -> new NotFoundException("No message found with messageId " + messageId + "!"));
 		}
 		catch (EbMSMessageServiceException e)
 		{
-			log.error("GetMessageStatus " + messageId,e);
+			log.error("GetMessageStatus {}",messageId,e);
 			throw e;
 		}
 		catch (Exception e)
 		{
-			log.error("GetMessageStatus " + messageId,e);
+			log.error("GetMessageStatus {}",messageId,e);
 			throw new EbMSMessageServiceException(e);
 		}
 	}
@@ -333,7 +333,7 @@ class EbMSMessageServiceHandler
 		}
 		catch (Exception e)
 		{
-			log.error("GetMessageEvents" + messageFilter,e);
+			log.error("GetMessageEvents {}",messageFilter,e);
 			throw new EbMSMessageServiceException(e);
 		}
 	}
@@ -342,7 +342,7 @@ class EbMSMessageServiceHandler
 	{
 		try
 		{
-			log.debug("ProcessMessageEvent " + messageId);
+			log.debug("ProcessMessageEvent {}",messageId);
 			Runnable runnable = () ->
 			{
 				messageEventDAO.processEbMSMessageEvent(messageId);
@@ -352,7 +352,7 @@ class EbMSMessageServiceHandler
 		}
 		catch (Exception e)
 		{
-			log.error("ProcessMessageEvent " + messageId,e);
+			log.error("ProcessMessageEvent {}",messageId,e);
 			throw new EbMSMessageServiceException(e);
 		}
 	}

@@ -136,6 +136,7 @@ public class QuartzDeliveryTaskManager implements DeliveryTaskManager
 	@Override
 	public void deleteTask(String messageId)
 	{
+		// Do nothing
 	}
 
 	protected Class<? extends Job> getJobClass()

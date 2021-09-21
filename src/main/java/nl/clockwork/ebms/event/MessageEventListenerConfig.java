@@ -21,6 +21,7 @@ import static io.vavr.API.Match;
 
 import java.util.EnumSet;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import javax.jms.ConnectionFactory;
@@ -43,6 +44,7 @@ import com.google.common.base.Splitter;
 import lombok.AccessLevel;
 import lombok.val;
 import lombok.experimental.FieldDefaults;
+import nl.clockwork.ebms.dao.AbstractDAOFactory;
 import nl.clockwork.ebms.dao.EbMSDAO;
 import nl.clockwork.ebms.model.EbMSMessageProperties;
 
@@ -62,27 +64,22 @@ public class MessageEventListenerConfig
 	EventListenerType eventListenerType;
 	@Value("${eventListener.filter}")
 	String eventListenerFilter;
-	@Autowired
-	EbMSDAO ebMSDAO;
-	@Autowired
-	ConnectionFactory connectionFactory;
 	@Value("${eventListener.jms.destinationType}")
 	JMSDestinationType jmsDestinationType;
-	@Autowired
-	DataSource dataSource;
-	@Autowired(required=false)
-	@Qualifier("messagePropertiesKafkaTemplate")
-	KafkaTemplate<String, EbMSMessageProperties> kafkaTemplate;
 
 	@Bean
-	public MessageEventListener messageEventListener()
+	public MessageEventListener messageEventListener(
+		@Autowired ConnectionFactory connectionFactory,
+		@Autowired AbstractDAOFactory<MessageEventDAO> messageEventDAO,
+		@Autowired EbMSDAO ebMSDAO,
+		@Autowired(required=false) @Qualifier("messagePropertiesKafkaTemplate") KafkaTemplate<String, EbMSMessageProperties> kafkaTemplate)
 	{
 		val jmsTemplate = new JmsTemplate(connectionFactory);
 		val filter = Splitter.on(',').trimResults().omitEmptyStrings().splitToStream(eventListenerFilter)
 			.map(MessageEventType::valueOf)
 			.collect(Collectors.toCollection(() -> EnumSet.noneOf(MessageEventType.class)));
 		val eventListener = Match(eventListenerType).of(
-				Case($(EventListenerType.DAO),o -> new DAOMessageEventListener(messageEventDAO().getObject())),
+				Case($(EventListenerType.DAO),o -> new DAOMessageEventListener(messageEventDAO.getObject())),
 				Case($(EventListenerType.SIMPLE_JMS),o -> new SimpleJMSMessageEventListener(jmsTemplate,createMessageEventDestinations(jmsDestinationType))),
 				Case($(EventListenerType.JMS),o -> new JMSMessageEventListener(ebMSDAO,jmsTemplate,createMessageEventDestinations(jmsDestinationType))),
 				Case($(EventListenerType.JMS_TEXT),o -> new JMSTextMessageEventListener(ebMSDAO,jmsTemplate,createMessageEventDestinations(jmsDestinationType))),
@@ -92,20 +89,18 @@ public class MessageEventListenerConfig
 	}
 
 	@Bean
-	public MessageEventDAOFactory messageEventDAO()
+	public MessageEventDAOFactory messageEventDAO(@Autowired DataSource dataSource)
 	{
-		val jdbcTemplate = new JdbcTemplate(dataSource);
-		return new MessageEventDAOFactory(dataSource,jdbcTemplate);
+		return new MessageEventDAOFactory(dataSource,new JdbcTemplate(dataSource));
 	}
 
 	private Map<String,Destination> createMessageEventDestinations(JMSDestinationType jmsDestinationType)
 	{
-		return MessageEventType.stream()
-				.collect(Collectors.toMap(e -> e.name(),e -> createDestination(jmsDestinationType,e)));
+		return MessageEventType.stream().collect(Collectors.toMap(MessageEventType::name,createDestination(jmsDestinationType)));
 	}
 
-	private Destination createDestination(JMSDestinationType jmsDestinationType, MessageEventType e)
+	private Function<MessageEventType,Destination> createDestination(JMSDestinationType jmsDestinationType)
 	{
-		return jmsDestinationType == JMSDestinationType.QUEUE ? new ActiveMQQueue(e.name()) : new ActiveMQTopic("VirtualTopic." + e.name());
+		return eventType -> jmsDestinationType == JMSDestinationType.QUEUE ? new ActiveMQQueue(eventType.name()) : new ActiveMQTopic("VirtualTopic." + eventType.name());
 	}
 }

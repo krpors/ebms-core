@@ -54,7 +54,7 @@ public class CacheConfig
 	@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 	@AllArgsConstructor
 	@Getter
-	public static enum CacheType
+	public enum CacheType
 	{
 		NONE(""),
 		DEFAULT(""),
@@ -64,6 +64,7 @@ public class CacheConfig
 		String defaultConfigLocation;
 	}
 
+	public static final String CACHE_TYPE = "cache.type";
 	@Value("${cache.type}")
 	CacheType type;
 	@Value("${cache.configLocation}")
@@ -143,7 +144,7 @@ public class CacheConfig
 		@Override
 		public boolean matches(ConditionContext context, AnnotatedTypeMetadata metadata)
 		{
-			return context.getEnvironment().getProperty("cache.type",CacheType.class,CacheType.DEFAULT) == CacheType.DEFAULT;
+			return context.getEnvironment().getProperty(CACHE_TYPE,CacheType.class,CacheType.DEFAULT) == CacheType.DEFAULT;
 		}
 	}
 	public static class EhCacheCacheType implements Condition
@@ -151,7 +152,7 @@ public class CacheConfig
 		@Override
 		public boolean matches(ConditionContext context, AnnotatedTypeMetadata metadata)
 		{
-			return context.getEnvironment().getProperty("cache.type",CacheType.class,CacheType.DEFAULT) == CacheType.EHCACHE;
+			return context.getEnvironment().getProperty(CACHE_TYPE,CacheType.class,CacheType.DEFAULT) == CacheType.EHCACHE;
 		}
 	}
 	public static class IgniteCacheType implements Condition
@@ -159,7 +160,7 @@ public class CacheConfig
 		@Override
 		public boolean matches(ConditionContext context, AnnotatedTypeMetadata metadata)
 		{
-			return context.getEnvironment().getProperty("cache.type",CacheType.class,CacheType.DEFAULT) == CacheType.IGNITE;
+			return context.getEnvironment().getProperty(CACHE_TYPE,CacheType.class,CacheType.DEFAULT) == CacheType.IGNITE;
 		}
 	}
 }

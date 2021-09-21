@@ -27,13 +27,8 @@ import nl.clockwork.ebms.validation.CPAValidator;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class CPAServiceConfig
 {
-	@Autowired
-	CPAManager cpaManager;
-	@Autowired
-	CPAValidator cpaValidator;
-
 	@Bean
-	public CPAService cpaService()
+	public CPAService cpaService(@Autowired CPAManager cpaManager, @Autowired CPAValidator cpaValidator)
 	{
 		return new CPAServiceImpl(cpaManager,cpaValidator);
 	}

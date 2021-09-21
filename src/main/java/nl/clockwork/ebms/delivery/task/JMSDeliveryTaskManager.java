@@ -132,5 +132,6 @@ class JMSDeliveryTaskManager implements DeliveryTaskManager
 	@Override
 	public void deleteTask(String messageId)
 	{
+		// Do nothing
 	}
 }

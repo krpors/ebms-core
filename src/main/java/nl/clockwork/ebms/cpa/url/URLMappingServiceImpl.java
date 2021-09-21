@@ -49,12 +49,12 @@ public class URLMappingServiceImpl implements URLMappingService, WithService
 		try
 		{
 			if (log.isDebugEnabled())
-				log.debug("SetURLMapping " + urlMapping);
+				log.debug("SetURLMapping {}",urlMapping);
 			urlMapper.setURLMapping(urlMapping);
 		}
 		catch (Exception e)
 		{
-			log.error("SetURLMapping " + urlMapping,e);
+			log.error("SetURLMapping {}",urlMapping,e);
 			throw toServiceException(new URLMappingServiceException(e));
 		}
 	}
@@ -66,18 +66,18 @@ public class URLMappingServiceImpl implements URLMappingService, WithService
 	{
 		try
 		{
-			log.debug("DeleteURLMapping " + source);
+			log.debug("DeleteURLMapping {}",source);
 			if (urlMapper.deleteURLMapping(source) == 0)
 				throw new URLNotFoundException();
 		}
 		catch (URLMappingServiceException e)
 		{
-			log.error("DeleteURLMapping " + source,e);
+			log.error("DeleteURLMapping {}",source,e);
 			throw toServiceException(e);
 		}
 		catch (Exception e)
 		{
-			log.error("DeleteURLMapping " + source,e);
+			log.error("DeleteURLMapping {}",source,e);
 			throw toServiceException(new URLMappingServiceException(e));
 		}
 	}

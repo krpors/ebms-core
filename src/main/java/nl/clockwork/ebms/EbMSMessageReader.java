@@ -88,7 +88,7 @@ public class EbMSMessageReader
 
 	private EbMSDocument getEbMSMessage(List<EbMSAttachment> attachments) throws ParserConfigurationException, SAXException, IOException
 	{
-		if (attachments.size() > 0)
+		if (!attachments.isEmpty())
 		{
 			val message = attachments.remove(0);
 			return EbMSDocument.builder()

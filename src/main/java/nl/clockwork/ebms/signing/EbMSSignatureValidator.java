@@ -27,7 +27,6 @@ import java.util.stream.Collectors;
 
 import org.apache.xml.security.exceptions.XMLSecurityException;
 import org.apache.xml.security.signature.XMLSignature;
-import org.apache.xml.security.signature.XMLSignatureException;
 import org.apache.xml.security.utils.Constants;
 import org.oasis_open.committees.ebxml_msg.schema.msg_header_2_0.MessageHeader;
 import org.w3._2000._09.xmldsig.ReferenceType;
@@ -137,7 +136,7 @@ public class EbMSSignatureValidator
 		}
 	}
 
-	private boolean verify(X509Certificate certificate, Element signatureElement, List<EbMSAttachment> attachments) throws XMLSignatureException, XMLSecurityException
+	private boolean verify(X509Certificate certificate, Element signatureElement, List<EbMSAttachment> attachments) throws XMLSecurityException
 	{
 		val signature = new XMLSignature(signatureElement,org.apache.xml.security.utils.Constants.SignatureSpecNS);
 		val resolver = new EbMSAttachmentResolver(attachments);
@@ -165,9 +164,9 @@ public class EbMSSignatureValidator
 
 	private void validateSignatureReferences(EbMSMessage requestMessage, EbMSAcknowledgment responseMessage) throws ValidationException
 	{
-		if (requestMessage.getSignature().getSignedInfo().getReference() == null || requestMessage.getSignature().getSignedInfo().getReference().size() == 0)
+		if (requestMessage.getSignature().getSignedInfo().getReference() == null || requestMessage.getSignature().getSignedInfo().getReference().isEmpty())
 			throw new ValidationException("No signature references found in request message " + requestMessage.getMessageHeader().getMessageData().getMessageId());
-		if (responseMessage.getAcknowledgment().getReference() == null || responseMessage.getAcknowledgment().getReference().size() == 0)
+		if (responseMessage.getAcknowledgment().getReference() == null || responseMessage.getAcknowledgment().getReference().isEmpty())
 			throw new ValidationException("No signature references found in response message " + responseMessage.getMessageHeader().getMessageData().getMessageId());
 		if (requestMessage.getSignature().getSignedInfo().getReference().size() != responseMessage.getAcknowledgment().getReference().size())
 			throw new ValidationException("Nr of signature references found in request message " + requestMessage.getMessageHeader().getMessageData().getMessageId() + " and response message " + responseMessage.getMessageHeader().getMessageData().getMessageId() + " do not match");
@@ -176,9 +175,9 @@ public class EbMSSignatureValidator
 //				.filter(r -> requestMessage.getSignature().getSignedInfo().getReference().contains(r))
 //				.collect(Collectors.toSet()).size() > 0)
 //			throw new ValidationException("Signature references found in request message " + requestMessage.getMessageHeader().getMessageData().getMessageId() + " and response message " + responseMessage.getMessageHeader().getMessageData().getMessageId() + " do not match");
-		if (requestMessage.getSignature().getSignedInfo().getReference().stream()
+		if (!requestMessage.getSignature().getSignedInfo().getReference().stream()
 				.filter(r -> !contains(responseMessage.getAcknowledgment().getReference(),r))
-				.collect(Collectors.toSet()).size() > 0)
+				.collect(Collectors.toSet()).isEmpty())
 			throw new ValidationException("Signature references found in request message " + requestMessage.getMessageHeader().getMessageData().getMessageId() + " and response message " + responseMessage.getMessageHeader().getMessageData().getMessageId() + " do not match");
 	}
 

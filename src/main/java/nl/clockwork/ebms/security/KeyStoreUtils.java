@@ -22,12 +22,15 @@ import java.io.InputStream;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
 
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 import lombok.val;
 import lombok.var;
 
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class KeyStoreUtils
 {
-	public static KeyStore loadKeyStore(KeyStoreType type, String location, String password) throws GeneralSecurityException, IOException
+	public static KeyStore loadKeyStore(KeyStoreType type, String location, String password)
 	{
 		try (val in = getInputStream(location))
 		{
@@ -35,9 +38,13 @@ public class KeyStoreUtils
 			keyStore.load(in,password.toCharArray());
 			return keyStore;
 		}
+		catch (GeneralSecurityException | IOException e)
+		{
+			throw new IllegalStateException(e);
+		}
 	}
 
-	public static InputStream getInputStream(String location) throws FileNotFoundException
+	private static InputStream getInputStream(String location) throws FileNotFoundException
 	{
 		try
 		{

@@ -20,6 +20,7 @@ import static io.vavr.API.Case;
 import static io.vavr.API.Match;
 import static io.vavr.API.run;
 import static io.vavr.Predicates.instanceOf;
+import static nl.clockwork.ebms.Constants.NSURI_SOAP_ENVELOPE;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -119,12 +120,12 @@ public class EbMSMessageUtils
 	private static void setEbMSMessageBuilderHeader(EbMSMessageBuilder result, Object o)
 	{
 		Match(o).of(
-				Case($(instanceOf(MessageHeader.class)),p -> result.messageHeader(p)),
-				Case($(instanceOf(AckRequested.class)),p -> result.ackRequested(p)),
-				Case($(instanceOf(Acknowledgment.class)),p -> result.acknowledgment(p)),
-				Case($(instanceOf(ErrorList.class)),p -> result.errorList((ErrorList)p)),
-				Case($(instanceOf(SyncReply.class)),p -> result.syncReply(p)),
-				Case($(instanceOf(MessageOrder.class)),p -> result.messageOrder(p)),
+				Case($(instanceOf(MessageHeader.class)),result::messageHeader),
+				Case($(instanceOf(AckRequested.class)),result::ackRequested),
+				Case($(instanceOf(Acknowledgment.class)),result::acknowledgment),
+				Case($(instanceOf(ErrorList.class)),result::errorList),
+				Case($(instanceOf(SyncReply.class)),result::syncReply),
+				Case($(instanceOf(MessageOrder.class)),result::messageOrder),
 				Case($(instanceOf(JAXBElement.class)),p -> run(() ->
 				{
 					if (((JAXBElement<?>)p).getValue() instanceof SignatureType)
@@ -135,9 +136,9 @@ public class EbMSMessageUtils
 	private static void setEbMSMessageBuilderBody(EbMSMessageBuilder result, Object o)
 	{
 		Match(o).of(
-				Case($(instanceOf(Manifest.class)),p -> result.manifest(p)),
-				Case($(instanceOf(StatusRequest.class)),p -> result.statusRequest(p)),
-				Case($(instanceOf(StatusResponse.class)),p -> result.statusResponse(p)));
+				Case($(instanceOf(Manifest.class)),result::manifest),
+				Case($(instanceOf(StatusRequest.class)),result::statusRequest),
+				Case($(instanceOf(StatusResponse.class)),result::statusResponse));
 	}
 
 	public static String toString(PartyId partyId)
@@ -147,7 +148,7 @@ public class EbMSMessageUtils
 
 	public static String toString(List<PartyId> partyIds)
 	{
-		return partyIds.stream().map(p -> toString(p)).findFirst().orElse(null);
+		return partyIds.stream().map(EbMSMessageUtils::toString).findFirst().orElse(null);
 	}
 
 	public static String toString(Service service)
@@ -181,7 +182,7 @@ public class EbMSMessageUtils
 				SyncReply syncReply = new SyncReply();
 				syncReply.setVersion(Constants.EBMS_VERSION);
 				syncReply.setMustUnderstand(true);
-				syncReply.setActor(Constants.NSURI_SOAP_NEXT_ACTOR);
+				syncReply.setActor(NSURI_SOAP_ENVELOPE);
 				return syncReply;
 			default:
 				break;
@@ -293,7 +294,7 @@ public class EbMSMessageUtils
 				Manifest.class,
 				StatusRequest.class,
 				StatusResponse.class);
-		val e = new JAXBElement<>(new QName("http://schemas.xmlsoap.org/soap/envelope/","Envelope"),Envelope.class,envelope);
+		val e = new JAXBElement<>(new QName(NSURI_SOAP_ENVELOPE,"Envelope"),Envelope.class,envelope);
 		val is = new ByteArrayInputStream(parser.handle(e,new EbMSNamespaceMapper()).getBytes());
 		return DOMUtils.getDocumentBuilder().parse(is);
 	}
@@ -303,11 +304,11 @@ public class EbMSMessageUtils
 		val envelope = new Envelope();
 		envelope.setBody(new Body());
 		val fault = new Fault();
-		fault.setFaultcode(new QName("http://schemas.xmlsoap.org/soap/envelope/",faultCode));
+		fault.setFaultcode(new QName(NSURI_SOAP_ENVELOPE,faultCode));
 		fault.setFaultstring(faultString);
-		val f = new JAXBElement<Fault>(new QName("http://schemas.xmlsoap.org/soap/envelope/","Fault"),Fault.class,fault);
+		val f = new JAXBElement<Fault>(new QName(NSURI_SOAP_ENVELOPE,"Fault"),Fault.class,fault);
 		envelope.getBody().getAny().add(f);
-		return DOMUtils.getDocumentBuilder().parse(new ByteArrayInputStream(JAXBParser.getInstance(Envelope.class).handle(new JAXBElement<>(new QName("http://schemas.xmlsoap.org/soap/envelope/","Envelope"),Envelope.class,envelope)).getBytes()));
+		return DOMUtils.getDocumentBuilder().parse(new ByteArrayInputStream(JAXBParser.getInstance(Envelope.class).handle(new JAXBElement<>(new QName(NSURI_SOAP_ENVELOPE,"Envelope"),Envelope.class,envelope)).getBytes()));
 	}
 
 }

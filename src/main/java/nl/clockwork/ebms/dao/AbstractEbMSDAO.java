@@ -16,6 +16,7 @@
 package nl.clockwork.ebms.dao;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -25,7 +26,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import javax.activation.DataHandler;
@@ -40,7 +40,6 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
-import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.w3c.dom.Document;
 import org.xml.sax.SAXException;
@@ -140,7 +139,7 @@ abstract class AbstractEbMSDAO implements EbMSDAO
 					.conversationId(rs.getString("conversation_id"))
 					.messageId(rs.getString("message_id"))
 					.refToMessageId(rs.getString("ref_to_message_id"))
-					.messageStatus(rs.getObject("status") == null ? null : EbMSMessageStatus.get(rs.getInt("status")).orElse(null))
+					.messageStatus(EbMSMessageStatus.get(rs.getInt("status")).orElseThrow(() -> new IllegalStateException("Status is null")))
 					.build();
 		}
 	}
@@ -188,16 +187,7 @@ abstract class AbstractEbMSDAO implements EbMSDAO
 	@Override
 	public void executeTransaction(final Runnable runnable)
 	{
-		transactionTemplate.executeWithoutResult(
-			new Consumer<TransactionStatus>()
-			{
-				@Override
-				public void accept(TransactionStatus t)
-				{
-					runnable.run();
-				}
-			}
-		);
+		transactionTemplate.executeWithoutResult(t -> runnable.run());
 	}
 
 	@Override
@@ -289,7 +279,7 @@ abstract class AbstractEbMSDAO implements EbMSDAO
 				" and message_nr = 0" +
 				(actions.length == 0 
 						? "" 
-						: " and service = '" + EbMSAction.EBMS_SERVICE_URI + "' and action in ('" + Arrays.stream(actions).map(a -> a.getAction()).collect(Collectors.joining("','")) + "')"),
+						: " and service = '" + EbMSAction.EBMS_SERVICE_URI + "' and action in ('" + Arrays.stream(actions).map(EbMSAction::getAction).collect(Collectors.joining("','")) + "')"),
 				new EbMSMessageContextRowMapper(),
 				cpaId,
 				refToMessageId
@@ -361,7 +351,7 @@ abstract class AbstractEbMSDAO implements EbMSDAO
 	{
 		try
 		{
-			val document = jdbcTemplate.queryForObject(
+			val document = Optional.ofNullable(jdbcTemplate.queryForObject(
 					"select message_id, content" +
 					" from ebms_message" +
 					" where cpa_id = ?" +
@@ -369,7 +359,7 @@ abstract class AbstractEbMSDAO implements EbMSDAO
 					" and message_nr = 0" +
 					(actions.length == 0 
 							? "" 
-							: " and service = '" + EbMSAction.EBMS_SERVICE_URI + "' and action in ('" + Arrays.stream(actions).map(a -> a.getAction()).collect(Collectors.joining("','")) + "')"),
+							: " and service = '" + EbMSAction.EBMS_SERVICE_URI + "' and action in ('" + Arrays.stream(actions).map(EbMSAction::getAction).collect(Collectors.joining("','")) + "')"),
 					new RowMapper<EbMSDocument>()
 					{
 						@Override
@@ -390,12 +380,12 @@ abstract class AbstractEbMSDAO implements EbMSDAO
 					},
 					cpaId,
 					refToMessageId
-				);
-			val builder = EbMSDocument.builder()
-					.contentId(document.getContentId())
-					.message(document.getMessage())
-					.attachments(getAttachments(refToMessageId,ebMSAttachmentRowMapper));
-			return Optional.of(builder.build());
+				));
+			return document.map(d -> EbMSDocument.builder()
+					.contentId(d.getContentId())
+					.message(d.getMessage())
+					.attachments(getAttachments(refToMessageId,ebMSAttachmentRowMapper))
+					.build());
 		}
 		catch(EmptyResultDataAccessException e)
 		{
@@ -407,7 +397,7 @@ abstract class AbstractEbMSDAO implements EbMSDAO
 	public Optional<Instant> getPersistTime(String messageId)
 	{
 		return Optional.ofNullable(jdbcTemplate.queryForObject("select persist_time from ebms_message where message_id = ? and message_nr = 0",Timestamp.class,messageId))
-				.map(r -> r.toInstant());
+				.map(Timestamp::toInstant);
 	}
 
 	@Override
@@ -454,132 +444,118 @@ abstract class AbstractEbMSDAO implements EbMSDAO
 	@Override
 	public String insertMessage(final Instant timestamp, final Instant persistTime, final Document document, final EbMSBaseMessage message, final List<EbMSAttachment> attachments, final EbMSMessageStatus status)
 	{
-		try
+		val keyHolder = new GeneratedKeyHolder();
+		jdbcTemplate.update(c ->
 		{
-			val keyHolder = new GeneratedKeyHolder();
-			jdbcTemplate.update(c ->
+			try
 			{
-				try
-				{
-					val messageHeader = message.getMessageHeader();
-					val ps = c.prepareStatement
-					(
-						"insert into ebms_message (" +
-							"time_stamp," +
-							"cpa_id," +
-							"conversation_id," +
-							"message_id," +
-							"ref_to_message_id," +
-							"time_to_live," +
-							"from_party_id," +
-							"from_role," +
-							"to_party_id," +
-							"to_role," +
-							"service," +
-							"action," +
-							"content," +
-							"status," +
-							"status_time," +
-							"persist_time" +
-						") values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-						new int[]{4,5}
-					);
-					ps.setTimestamp(1,Timestamp.from(timestamp));
-					ps.setString(2,messageHeader.getCPAId());
-					ps.setString(3,messageHeader.getConversationId());
-					ps.setString(4,messageHeader.getMessageData().getMessageId());
-					ps.setString(5,messageHeader.getMessageData().getRefToMessageId());
-					ps.setTimestamp(6,messageHeader.getMessageData().getTimeToLive() == null ? null : Timestamp.from(messageHeader.getMessageData().getTimeToLive()));
-					ps.setString(7,EbMSMessageUtils.toString(messageHeader.getFrom().getPartyId().get(0)));
-					ps.setString(8,messageHeader.getFrom().getRole());
-					ps.setString(9,EbMSMessageUtils.toString(messageHeader.getTo().getPartyId().get(0)));
-					ps.setString(10,messageHeader.getTo().getRole());
-					ps.setString(11,EbMSMessageUtils.toString(messageHeader.getService()));
-					ps.setString(12,messageHeader.getAction());
-					ps.setString(13,DOMUtils.toString(document,"UTF-8"));
-					ps.setObject(14,status != null ? status.getId() : null,java.sql.Types.INTEGER);
-					ps.setTimestamp(15,status != null ? Timestamp.from(timestamp) : null);
-					ps.setTimestamp(16,persistTime != null ? Timestamp.from(persistTime) : null);
-					return ps;
-				}
-				catch (TransformerException e)
-				{
-					throw new SQLException(e);
-				}
-			},
-			keyHolder);
-			insertAttachments(keyHolder,attachments);
-			return (String)keyHolder.getKeys().get("message_id");
-		}
-		catch (IOException e)
-		{
-			throw new DataRetrievalFailureException("",e);
-		}
+				val messageHeader = message.getMessageHeader();
+				val ps = c.prepareStatement
+				(
+					"insert into ebms_message (" +
+						"time_stamp," +
+						"cpa_id," +
+						"conversation_id," +
+						"message_id," +
+						"ref_to_message_id," +
+						"time_to_live," +
+						"from_party_id," +
+						"from_role," +
+						"to_party_id," +
+						"to_role," +
+						"service," +
+						"action," +
+						"content," +
+						"status," +
+						"status_time," +
+						"persist_time" +
+					") values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+					new int[]{4,5}
+				);
+				ps.setTimestamp(1,Timestamp.from(timestamp));
+				ps.setString(2,messageHeader.getCPAId());
+				ps.setString(3,messageHeader.getConversationId());
+				ps.setString(4,messageHeader.getMessageData().getMessageId());
+				ps.setString(5,messageHeader.getMessageData().getRefToMessageId());
+				ps.setTimestamp(6,messageHeader.getMessageData().getTimeToLive() == null ? null : Timestamp.from(messageHeader.getMessageData().getTimeToLive()));
+				ps.setString(7,EbMSMessageUtils.toString(messageHeader.getFrom().getPartyId().get(0)));
+				ps.setString(8,messageHeader.getFrom().getRole());
+				ps.setString(9,EbMSMessageUtils.toString(messageHeader.getTo().getPartyId().get(0)));
+				ps.setString(10,messageHeader.getTo().getRole());
+				ps.setString(11,EbMSMessageUtils.toString(messageHeader.getService()));
+				ps.setString(12,messageHeader.getAction());
+				ps.setString(13,DOMUtils.toString(document,StandardCharsets.UTF_8.name()));
+				ps.setObject(14,status != null ? status.getId() : null,java.sql.Types.INTEGER);
+				ps.setTimestamp(15,status != null ? Timestamp.from(timestamp) : null);
+				ps.setTimestamp(16,persistTime != null ? Timestamp.from(persistTime) : null);
+				return ps;
+			}
+			catch (TransformerException e)
+			{
+				throw new SQLException(e);
+			}
+		},
+		keyHolder);
+		insertAttachments(keyHolder,attachments);
+		return (String)keyHolder.getKeys().get("message_id");
 	}
 
 	@Override
 	public Tuple2<String,Integer> insertDuplicateMessage(final Instant timestamp, final Document document, final EbMSBaseMessage message, final List<EbMSAttachment> attachments)
 	{
-		try
+		val keyHolder = new GeneratedKeyHolder();
+		jdbcTemplate.update(c ->
 		{
-			val keyHolder = new GeneratedKeyHolder();
-			jdbcTemplate.update(c ->
+			try
 			{
-				try
-				{
-					val messageHeader = message.getMessageHeader();
-					val ps = c.prepareStatement
-					(
-						"insert into ebms_message (" +
-							"time_stamp," +
-							"cpa_id," +
-							"conversation_id," +
-							"message_id," +
-							"message_nr," +
-							"ref_to_message_id," +
-							"time_to_live," +
-							"from_party_id," +
-							"from_role," +
-							"to_party_id," +
-							"to_role," +
-							"service," +
-							"action," +
-							"content" +
-						") values (?,?,?,?,(select max(message_nr) + 1 from ebms_message where message_id = ?),?,?,?,?,?,?,?,?,?)",
-						new int[]{4,5}
-					);
-					ps.setTimestamp(1,Timestamp.from(timestamp));
-					ps.setString(2,messageHeader.getCPAId());
-					ps.setString(3,messageHeader.getConversationId());
-					ps.setString(4,messageHeader.getMessageData().getMessageId());
-					ps.setString(5,messageHeader.getMessageData().getMessageId());
-					ps.setString(6,messageHeader.getMessageData().getRefToMessageId());
-					ps.setTimestamp(7,messageHeader.getMessageData().getTimeToLive() == null ? null : Timestamp.from(messageHeader.getMessageData().getTimeToLive()));
-					ps.setString(8,EbMSMessageUtils.toString(messageHeader.getFrom().getPartyId().get(0)));
-					ps.setString(9,messageHeader.getFrom().getRole());
-					ps.setString(10,EbMSMessageUtils.toString(messageHeader.getTo().getPartyId().get(0)));
-					ps.setString(11,messageHeader.getTo().getRole());
-					ps.setString(12,EbMSMessageUtils.toString(messageHeader.getService()));
-					ps.setString(13,messageHeader.getAction());
-					ps.setString(14,DOMUtils.toString(document,"UTF-8"));
-					return ps;
-				}
-				catch (TransformerException e)
-				{
-					throw new SQLException(e);
-				}
-			},
-			keyHolder);
-			insertAttachments(keyHolder,attachments);
-			return Tuple.of((String)keyHolder.getKeys().get("message_id"),(Integer)keyHolder.getKeys().get("message_nr"));
-		}
-		catch (IOException e)
-		{
-			throw new DataRetrievalFailureException("",e);
-		}
+				val messageHeader = message.getMessageHeader();
+				val ps = c.prepareStatement
+				(
+					"insert into ebms_message (" +
+						"time_stamp," +
+						"cpa_id," +
+						"conversation_id," +
+						"message_id," +
+						"message_nr," +
+						"ref_to_message_id," +
+						"time_to_live," +
+						"from_party_id," +
+						"from_role," +
+						"to_party_id," +
+						"to_role," +
+						"service," +
+						"action," +
+						"content" +
+					") values (?,?,?,?,(select max(message_nr) + 1 from ebms_message where message_id = ?),?,?,?,?,?,?,?,?,?)",
+					new int[]{4,5}
+				);
+				ps.setTimestamp(1,Timestamp.from(timestamp));
+				ps.setString(2,messageHeader.getCPAId());
+				ps.setString(3,messageHeader.getConversationId());
+				ps.setString(4,messageHeader.getMessageData().getMessageId());
+				ps.setString(5,messageHeader.getMessageData().getMessageId());
+				ps.setString(6,messageHeader.getMessageData().getRefToMessageId());
+				ps.setTimestamp(7,messageHeader.getMessageData().getTimeToLive() == null ? null : Timestamp.from(messageHeader.getMessageData().getTimeToLive()));
+				ps.setString(8,EbMSMessageUtils.toString(messageHeader.getFrom().getPartyId().get(0)));
+				ps.setString(9,messageHeader.getFrom().getRole());
+				ps.setString(10,EbMSMessageUtils.toString(messageHeader.getTo().getPartyId().get(0)));
+				ps.setString(11,messageHeader.getTo().getRole());
+				ps.setString(12,EbMSMessageUtils.toString(messageHeader.getService()));
+				ps.setString(13,messageHeader.getAction());
+				ps.setString(14,DOMUtils.toString(document,StandardCharsets.UTF_8.name()));
+				return ps;
+			}
+			catch (TransformerException e)
+			{
+				throw new SQLException(e);
+			}
+		},
+		keyHolder);
+		insertAttachments(keyHolder,attachments);
+		return Tuple.of((String)keyHolder.getKeys().get("message_id"),(Integer)keyHolder.getKeys().get("message_nr"));
 	}
 
-	protected void insertAttachments(KeyHolder keyHolder, List<EbMSAttachment> attachments) throws InvalidDataAccessApiUsageException, IOException
+	protected void insertAttachments(KeyHolder keyHolder, List<EbMSAttachment> attachments) throws InvalidDataAccessApiUsageException
 	{
 		val orderNr = new AtomicInteger();
 		for (val attachment: attachments)
@@ -638,12 +614,12 @@ abstract class AbstractEbMSDAO implements EbMSDAO
 	{
 		return jdbcTemplate.query(
 				"select name, content_id, content_type, content" + 
-						" from ebms_attachment" + 
-						" where message_id = ?" +
-						" and message_nr = 0" +
-						" order by order_nr",
-						rowMapper,
-						messageId
-				);
+				" from ebms_attachment" + 
+				" where message_id = ?" +
+				" and message_nr = 0" +
+				" order by order_nr",
+				rowMapper,
+				messageId
+		);
 	}
 }

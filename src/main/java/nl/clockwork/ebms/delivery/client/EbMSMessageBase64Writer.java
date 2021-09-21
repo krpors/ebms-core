@@ -33,6 +33,7 @@ class EbMSMessageBase64Writer extends EbMSMessageWriter
 		super(connection);
 	}
 
+	@Override
 	protected void writeBinaryAttachment(String boundary, OutputStream outputStream, OutputStreamWriter writer, EbMSAttachment attachment) throws IOException
 	{
 		try (val a = attachment)

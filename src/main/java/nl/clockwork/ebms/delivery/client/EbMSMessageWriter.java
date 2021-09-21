@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
+import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
 import javax.xml.transform.TransformerException;
@@ -47,10 +48,10 @@ class EbMSMessageWriter
 	
 	public void write(EbMSDocument document) throws IOException, TransformerException
 	{
-		if (document.getAttachments().size() > 0)
-			writeMimeMessage(document);
-		else
+		if (document.getAttachments().isEmpty())
 			writeMessage(document);
+		else
+			writeMimeMessage(document);
 	}
 
 	protected void writeMessage(EbMSDocument document) throws IOException, TransformerException
@@ -58,15 +59,15 @@ class EbMSMessageWriter
 		connection.setRequestProperty("Content-Type","text/xml; charset=UTF-8");
 		connection.setRequestProperty("SOAPAction",Constants.EBMS_SOAP_ACTION);
 		if (messageLog.isInfoEnabled())
-			messageLog.info(">>>>\n" + (messageLog.isDebugEnabled() ? HTTPUtils.toString(connection.getRequestProperties()) + "\n" : "") + DOMUtils.toString(document.getMessage()));
-		//DOMUtils.write(document.getMessage(),messageLog.isInfoEnabled() ? new LoggingOutputStream(connection.getOutputStream()) : connection.getOutputStream(),"UTF-8");
-		DOMUtils.write(document.getMessage(),connection.getOutputStream(),"UTF-8");
+			messageLog.info(">>>>\n{}{}",(messageLog.isDebugEnabled() ? HTTPUtils.toString(connection.getRequestProperties()) + "\n" : ""),DOMUtils.toString(document.getMessage()));
+		//DOMUtils.write(document.getMessage(),messageLog.isInfoEnabled() ? new LoggingOutputStream(connection.getOutputStream()) : connection.getOutputStream(),StandardCharsets.UTF_8.name());
+		DOMUtils.write(document.getMessage(),connection.getOutputStream(),StandardCharsets.UTF_8.name());
 	}
 	
 	protected void writeMimeMessage(EbMSDocument document) throws IOException, TransformerException
 	{
 		if (messageLog.isInfoEnabled() && !messageLog.isDebugEnabled())
-			messageLog.info(">>>>\n" + DOMUtils.toString(document.getMessage()));
+			messageLog.info(">>>>\n{}",DOMUtils.toString(document.getMessage()));
 		val boundary = createBoundary();
 		val contentType = createContentType(boundary,document.getContentId());
 
@@ -76,7 +77,7 @@ class EbMSMessageWriter
 		val requestProperties = connection.getRequestProperties();
 		val outputStream = messageLog.isDebugEnabled() ? new LoggingOutputStream(requestProperties,connection.getOutputStream()) : connection.getOutputStream();
 
-		try (val writer = new OutputStreamWriter(outputStream,"UTF-8"))
+		try (val writer = new OutputStreamWriter(outputStream,StandardCharsets.UTF_8.name()))
 		{
 			writer.write("--");
 			writer.write(boundary);
@@ -87,7 +88,7 @@ class EbMSMessageWriter
 			writer.write("Content-ID: <" + document.getContentId() + ">");
 			writer.write("\r\n");
 			writer.write("\r\n");
-			DOMUtils.write(document.getMessage(),writer,"UTF-8");
+			DOMUtils.write(document.getMessage(),writer,StandardCharsets.UTF_8.name());
 			writer.write("\r\n");
 			writer.write("--");
 			writer.write(boundary);

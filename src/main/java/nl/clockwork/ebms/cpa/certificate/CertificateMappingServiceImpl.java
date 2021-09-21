@@ -49,6 +49,7 @@ import nl.clockwork.ebms.jaxrs.WithService;
 public class CertificateMappingServiceImpl implements CertificateMappingService, WithService
 {
 	@Data
+	@FieldDefaults(level = AccessLevel.PRIVATE)
 	@NoArgsConstructor
 	@AllArgsConstructor
 	private static class CertificateMapping
@@ -97,7 +98,7 @@ public class CertificateMappingServiceImpl implements CertificateMappingService,
 		}
 		catch (Exception e)
 		{
-			log.error("SetCertificateMapping " + certificateMapping,e);
+			log.error("SetCertificateMapping {}",certificateMapping,e);
 			throw toServiceException(new CertificateMappingServiceException(e));
 		}
 	}
@@ -108,12 +109,12 @@ public class CertificateMappingServiceImpl implements CertificateMappingService,
 		try
 		{
 			if (log.isDebugEnabled())
-				log.debug("SetCertificateMapping " + certificateMapping);
+				log.debug("SetCertificateMapping {}",certificateMapping);
 			certificateMapper.setCertificateMapping(certificateMapping);
 		}
 		catch (Exception e)
 		{
-			log.error("SetCertificateMapping " + certificateMapping,e);
+			log.error("SetCertificateMapping {}",certificateMapping,e);
 			throw toServiceException(new CertificateMappingServiceException(e));
 		}
 	}
@@ -128,7 +129,7 @@ public class CertificateMappingServiceImpl implements CertificateMappingService,
 		}
 		catch (Exception e)
 		{
-			log.error("DeleteCertificateMapping " + source,e);
+			log.error("DeleteCertificateMapping {}",source,e);
 			throw toServiceException(new CertificateMappingServiceException(e));
 		}
 	}
@@ -139,7 +140,7 @@ public class CertificateMappingServiceImpl implements CertificateMappingService,
 		try
 		{
 			if (log.isDebugEnabled())
-				log.debug("DeleteCertificateMapping " + source);
+				log.debug("DeleteCertificateMapping {}",source);
 			if (certificateMapper.deleteCertificateMapping(source,cpaId) == 0)
 				throw new CertificateNotFoundException();
 		}
@@ -150,7 +151,7 @@ public class CertificateMappingServiceImpl implements CertificateMappingService,
 		}
 		catch (Exception e)
 		{
-			log.error("DeleteCertificateMapping " + source,e);
+			log.error("DeleteCertificateMapping {}",source,e);
 			throw toServiceException(new CertificateMappingServiceException(e));
 		}
 	}

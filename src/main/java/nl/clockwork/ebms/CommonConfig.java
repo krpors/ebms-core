@@ -31,8 +31,6 @@ import nl.clockwork.ebms.util.LoggingUtils.Status;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class CommonConfig
 {
-	@Autowired
-	CPAManager cpaManager;
 	@Value("${ebmsMessage.attachment.outputDirectory}")
 	String attachmentOutputDirectory;
 	@Value("${ebmsMessage.attachment.memoryTreshold}")
@@ -49,13 +47,13 @@ public class CommonConfig
 	}
 
 	@Bean
-	public EbMSMessageFactory ebMSMessageFactory()
+	public EbMSMessageFactory ebMSMessageFactory(@Autowired CPAManager cpaManager)
 	{
 		return new EbMSMessageFactory(cpaManager,ebMSIdGenerator());
 	}
 
 	@Bean
-	public void EbMSAttachmentFactory()
+	public void ebMSAttachmentFactory()
 	{
 		EbMSAttachmentFactory.init(attachmentOutputDirectory,attachmentMemoryTreshold,attachmentCipherTransformation);
 	}

@@ -30,23 +30,20 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class URLMappingServiceConfig
 {
-	@Autowired
-	DataSource dataSource;
-
 	@Bean
-	public URLMappingService urlMappingService()
+	public URLMappingService urlMappingService(@Autowired URLMapper urlMapper)
 	{
-		return new URLMappingServiceImpl(urlMapper());
+		return new URLMappingServiceImpl(urlMapper);
 	}
 
 	@Bean
-	public URLMapper urlMapper()
+	public URLMapper urlMapper(@Autowired URLMappingDAO urlMappingDAO)
 	{
-		return new URLMapper(urlMappingDAO());
+		return new URLMapper(urlMappingDAO);
 	}
 
 	@Bean
-	public URLMappingDAO urlMappingDAO()
+	public URLMappingDAO urlMappingDAO(@Autowired DataSource dataSource)
 	{
 		val jdbcTemplate = new JdbcTemplate(dataSource);
 		return new URLMappingDAOImpl(jdbcTemplate);

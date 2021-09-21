@@ -67,28 +67,32 @@ public class SecurityUtils
 			certificate.checkValidity(Date.from(date));
 			val aliases = trustStore.aliases();
 			while (aliases.hasMoreElements())
-			{
-				try
-				{
-					val c = trustStore.getCertificate(aliases.nextElement());
-					if (c instanceof X509Certificate)
-						if (certificate.getIssuerDN().getName().equals(((X509Certificate)c).getSubjectDN().getName()))
-						{
-							certificate.verify(c.getPublicKey());
-							return;
-						}
-				}
-				catch (GeneralSecurityException e)
-				{
-					log.trace("",e);
-				}
-			}
+				if (verifyCertificate(certificate,trustStore,aliases.nextElement()))
+					return;
 			throw new ValidationException("Certificate " + certificate.getIssuerDN() + " not found!");
 		}
 		catch (CertificateExpiredException | CertificateNotYetValidException e)
 		{
 			throw new ValidationException(e);
 		}
+	}
+
+	private static boolean verifyCertificate(X509Certificate certificate, EbMSTrustStore trustStore, final String alias)
+	{
+		try
+		{
+			val c = trustStore.getCertificate(alias);
+			if (c instanceof X509Certificate && certificate.getIssuerDN().getName().equals(((X509Certificate)c).getSubjectDN().getName()))
+			{
+				certificate.verify(c.getPublicKey());
+				return true;
+			}
+		}
+		catch (GeneralSecurityException e)
+		{
+			log.trace("",e);
+		}
+		return false;
 	}
 	
 	public static SecretKey generateKey(String encryptionAlgorithm) throws NoSuchAlgorithmException

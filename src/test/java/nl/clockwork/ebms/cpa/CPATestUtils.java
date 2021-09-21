@@ -17,6 +17,7 @@ package nl.clockwork.ebms.cpa;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 
 import javax.xml.bind.JAXBException;
@@ -36,7 +37,7 @@ public class CPATestUtils
 	{
 		try
 		{
-			val s = IOUtils.toString(CPAUtils.class.getResourceAsStream("/nl/clockwork/ebms/cpa/" + cpaId + ".xml"),Charset.forName("UTF-8"));
+			val s = IOUtils.toString(CPAUtils.class.getResourceAsStream("/nl/clockwork/ebms/cpa/" + cpaId + ".xml"),Charset.forName(StandardCharsets.UTF_8.name()));
 			return Optional.of(JAXBParser.getInstance(CollaborationProtocolAgreement.class).handleUnsafe(s));
 		}
 		catch (IOException | JAXBException e)

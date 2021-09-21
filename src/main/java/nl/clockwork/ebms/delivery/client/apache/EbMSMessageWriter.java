@@ -18,6 +18,7 @@ package nl.clockwork.ebms.delivery.client.apache;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 
 import javax.xml.transform.TransformerException;
 
@@ -55,20 +56,20 @@ class EbMSMessageWriter
 		this(httpPost,true);
 	}
 
-	public void write(EbMSDocument document) throws IOException, TransformerException, UnsupportedEncodingException
+	public void write(EbMSDocument document) throws IOException, TransformerException
 	{
-		if (document.getAttachments().size() > 0)
-			writeMimeMessage(document);
-		else
+		if (document.getAttachments().isEmpty())
 			writeMessage(document);
+		else
+			writeMimeMessage(document);
 	}
 
 	protected void writeMessage(EbMSDocument document) throws UnsupportedEncodingException, TransformerException
 	{
 		if (messageLog.isInfoEnabled() && !wireLog.isDebugEnabled())
-			messageLog.info(">>>>\n" + DOMUtils.toString(document.getMessage()));
+			messageLog.info(">>>>\n{}",DOMUtils.toString(document.getMessage()));
 		httpPost.setHeader("SOAPAction",Constants.EBMS_SOAP_ACTION);
-		val entity = new StringEntity(DOMUtils.toString(document.getMessage(),"UTF-8"),"UTF-8");
+		val entity = new StringEntity(DOMUtils.toString(document.getMessage(),StandardCharsets.UTF_8.name()),StandardCharsets.UTF_8.name());
 		entity.setContentType("text/xml");
 		entity.setChunked(chunkedStreamingMode);
 		httpPost.setEntity(entity);
@@ -77,11 +78,11 @@ class EbMSMessageWriter
 	protected void writeMimeMessage(EbMSDocument document) throws IOException, TransformerException
 	{
 		if (messageLog.isInfoEnabled() && !wireLog.isDebugEnabled())
-			messageLog.info(">>>>\n" + DOMUtils.toString(document.getMessage()));
+			messageLog.info(">>>>\n{}",DOMUtils.toString(document.getMessage()));
 		httpPost.setHeader("SOAPAction",Constants.EBMS_SOAP_ACTION);
 		val entity = MultipartEntityBuilder.create();
 		entity.setContentType(ContentType.create("multipart/related"));
-		entity.addPart(document.getContentId(),new StringBody(DOMUtils.toString(document.getMessage(),"UTF-8"),ContentType.create("text/xml")));
+		entity.addPart(document.getContentId(),new StringBody(DOMUtils.toString(document.getMessage(),StandardCharsets.UTF_8.name()),ContentType.create("text/xml")));
 		for (val attachment: document.getAttachments())
 		{
 			if (attachment.getContentType().matches("^(text/.*|.*/xml)$"))

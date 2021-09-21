@@ -27,11 +27,8 @@ import nl.clockwork.ebms.processor.EbMSMessageProcessor;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class EbMSServerConfig
 {
-	@Autowired
-	EbMSMessageProcessor messageProcessor;
-
 	@Bean
-	public EbMSHttpHandler httpHandler()
+	public EbMSHttpHandler httpHandler(@Autowired EbMSMessageProcessor messageProcessor)
 	{
 		return new EbMSHttpHandler(messageProcessor);
 	}

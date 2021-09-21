@@ -62,66 +62,40 @@ public interface EbMSDAO
 
 	public static String getMessageFilter(MessageFilter messageFilter, List<Object> parameters)
 	{
-		val result = new StringBuffer();
+		val result = new StringBuilder();
 		if (messageFilter != null)
 		{
 			if (messageFilter.getCpaId() != null)
-			{
-				parameters.add(messageFilter.getCpaId());
-				result.append(" and ebms_message.cpa_id = ?");
-			}
+				add(result, "ebms_message.cpa_id", parameters, messageFilter.getCpaId());
 			if (messageFilter.getFromParty() != null)
 			{
-				if (messageFilter.getFromParty().getPartyId() != null)
-				{
-					parameters.add(messageFilter.getFromParty().getPartyId());
-					result.append(" and ebms_message.from_party_id = ?");
-				}
+				add(result, "ebms_message.from_party_id", parameters, messageFilter.getFromParty().getPartyId());
 				if (messageFilter.getFromParty().getRole() != null)
-				{
-					parameters.add(messageFilter.getFromParty().getRole());
-					result.append(" and ebms_message.from_role = ?");
-				}
+					add(result, "ebms_message.from_role", parameters, messageFilter.getFromParty().getRole());
 			}
 			if (messageFilter.getToParty() != null)
 			{
-				if (messageFilter.getToParty().getPartyId() != null)
-				{
-					parameters.add(messageFilter.getToParty().getPartyId());
-					result.append(" and ebms_message.to_party_id = ?");
-				}
+				add(result, "ebms_message.to_party_id", parameters, messageFilter.getToParty().getPartyId());
 				if (messageFilter.getToParty().getRole() != null)
-				{
-					parameters.add(messageFilter.getToParty().getRole());
-					result.append(" and ebms_message.to_role = ?");
-				}
+					add(result, "ebms_message.to_role", parameters, messageFilter.getToParty().getRole());
 			}
 			if (messageFilter.getService() != null)
-			{
-				parameters.add(messageFilter.getService());
-				result.append(" and ebms_message.service = ?");
-			}
+				add(result, "ebms_message.service", parameters, messageFilter.getService());
 			if (messageFilter.getAction() != null)
-			{
-				parameters.add(messageFilter.getAction());
-				result.append(" and ebms_message.action = ?");
-			}
+				add(result, "ebms_message.action", parameters, messageFilter.getAction());
 			if (messageFilter.getConversationId() != null)
-			{
-				parameters.add(messageFilter.getConversationId());
-				result.append(" and ebms_message.conversation_id = ?");
-			}
+				add(result, "ebms_message.conversation_id", parameters, messageFilter.getConversationId());
 			if (messageFilter.getMessageId() != null)
-			{
-				parameters.add(messageFilter.getMessageId());
-				result.append(" and ebms_message.message_id = ?");
-			}
+				add(result, "ebms_message.message_id", parameters, messageFilter.getMessageId());
 			if (messageFilter.getRefToMessageId() != null)
-			{
-				parameters.add(messageFilter.getRefToMessageId());
-				result.append(" and ebms_message.ref_to_message_id = ?");
-			}
+				add(result, "ebms_message.ref_to_message_id", parameters, messageFilter.getRefToMessageId());
 		}
 		return result.toString();
+	}
+
+	static void add(final StringBuilder result, String fieldName, List<Object> parameters, String value)
+	{
+		result.append(" and " + fieldName + " = ?");
+		parameters.add(value);
 	}
 }

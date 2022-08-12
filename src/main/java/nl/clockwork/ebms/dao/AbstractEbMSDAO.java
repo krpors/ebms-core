@@ -438,15 +438,20 @@ abstract class AbstractEbMSDAO implements EbMSDAO
 				String.class);
 	}
 
-	public abstract String getMessageIdsQuery(String messageContextFilter, EbMSMessageStatus status, int maxNr);
-
 	@Override
 	public List<String> getMessageIds(MessageFilter messageFilter, EbMSMessageStatus status, int maxNr)
 	{
 		val parameters = new ArrayList<Object>();
 		val messageContextFilter = EbMSDAO.getMessageFilter(messageFilter,parameters);
 		return jdbcTemplate.queryForList(
-				getMessageIdsQuery(messageContextFilter,status,maxNr),
+				"select message_id" +
+				" from ebms_message" +
+				" where message_nr = 0" + 
+				" and status = " + status.getId() +
+				messageContextFilter +
+				" order by time_stamp asc" +
+				" offset 0 rows" +
+				" fetch first (" + maxNr + ") rows only",
 				parameters.toArray(new Object[0]),
 				String.class);
 	}

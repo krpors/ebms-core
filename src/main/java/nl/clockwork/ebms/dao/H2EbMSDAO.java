@@ -26,16 +26,4 @@ class H2EbMSDAO extends MySQLEbMSDAO
 	{	
 		super(transactionTemplate,jdbcTemplate);
 	}
-
-	@Override
-	public String getMessageIdsQuery(String messageContextFilter, EbMSMessageStatus status, int maxNr)
-	{
-		return "select message_id" +
-		" from ebms_message" +
-		" where message_nr = 0" + 
-		" and status = " + status.getId() +
-		messageContextFilter +
-		" order by time_stamp asc" +
-		" limit " + maxNr;
-	}
 }

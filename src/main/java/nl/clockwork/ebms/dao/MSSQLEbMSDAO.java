@@ -46,17 +46,6 @@ class MSSQLEbMSDAO extends MySQLEbMSDAO
 	}
 
 	@Override
-	public String getMessageIdsQuery(String messageContextFilter, EbMSMessageStatus status, int maxNr)
-	{
-		return "select top " + maxNr + " message_id" +
-		" from ebms_message" +
-		" where message_nr = 0" +
-		" and status = " + status.getId() +
-		messageContextFilter +
-		" order by time_stamp asc";
-	}
-
-	@Override
 	public Tuple2<String,Integer> insertDuplicateMessage(final Instant timestamp, final Document document, final EbMSBaseMessage message, final List<EbMSAttachment> attachments)
 	{
 		try

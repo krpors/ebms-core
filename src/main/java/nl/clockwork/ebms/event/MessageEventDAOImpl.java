@@ -70,7 +70,19 @@ abstract class MessageEventDAOImpl implements MessageEventDAO
 		);
 	}
 
-	protected abstract String getMessageEventsQuery(String messageContextFilter, MessageEventType[] types, int maxNr);
+	private String getMessageEventsQuery(String messageContextFilter, MessageEventType[] types, int maxNr)
+	{
+		return "select message_event.message_id, message_event.event_type" +
+				" from message_event, ebms_message" +
+				" where message_event.processed = 0" +
+				" and message_event.event_type in (" + join(types == null || types.length == 0 ? MessageEventType.values() : types,",") + ")" +
+				" and message_event.message_id = ebms_message.message_id" +
+				" and ebms_message.message_nr = 0" +
+				messageContextFilter +
+				" order by message_event.time_stamp asc" +
+				" offset 0 rows" +
+				" fetch first (" + maxNr + ") rows only";
+	}
 
 	@Override
 	public List<MessageEvent> getEbMSMessageEvents(MessageFilter messageFilter, MessageEventType[] types, int maxNr)

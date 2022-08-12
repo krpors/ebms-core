@@ -38,7 +38,7 @@ import nl.clockwork.ebms.service.model.MessageFilter;
 
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @AllArgsConstructor
-abstract class MessageEventDAOImpl implements MessageEventDAO
+class MessageEventDAOImpl implements MessageEventDAO
 {
 	public static class EbMSMessageEventRowMapper implements RowMapper<MessageEvent>
 	{
@@ -65,8 +65,8 @@ abstract class MessageEventDAOImpl implements MessageEventDAO
 			" and ebms_message.message_nr = 0" +
 			EbMSDAO.getMessageFilter(messageFilter,parameters) +
 			" order by ebms_message.time_stamp asc",
-			parameters.toArray(new Object[0]),
-			new EbMSMessageEventRowMapper()
+			new EbMSMessageEventRowMapper(),
+			parameters.toArray(new Object[0])
 		);
 	}
 
@@ -91,8 +91,8 @@ abstract class MessageEventDAOImpl implements MessageEventDAO
 		val messageContextFilter = EbMSDAO.getMessageFilter(messageFilter,parameters);
 		return jdbcTemplate.query(
 			getMessageEventsQuery(messageContextFilter,types,maxNr),
-			parameters.toArray(new Object[0]),
-			new EbMSMessageEventRowMapper()
+			new EbMSMessageEventRowMapper(),
+			parameters.toArray(new Object[0])
 		);
 	}
 

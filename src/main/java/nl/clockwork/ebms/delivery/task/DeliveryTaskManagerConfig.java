@@ -33,7 +33,6 @@ import org.springframework.jms.core.JmsTemplate;
 import org.springframework.kafka.core.KafkaTemplate;
 
 import lombok.AccessLevel;
-import lombok.val;
 import lombok.experimental.FieldDefaults;
 import nl.clockwork.ebms.cpa.CPAManager;
 import nl.clockwork.ebms.dao.EbMSDAO;
@@ -59,57 +58,53 @@ public class DeliveryTaskManagerConfig
 	int autoRetryInterval;
 	@Autowired
 	EbMSDAO ebMSDAO;
-	@Autowired
-	DataSource dataSource;
-	@Autowired(required=false)
-	@Qualifier("deliveryTaskKafkaTemplate")
-	KafkaTemplate<String, DeliveryTask> kafkaTemplate;
 
 	@Bean
 	@Conditional(DefaultTaskManagerType.class)
-	public DeliveryTaskManager defaultDeliveryTaskManager()
+	public DeliveryTaskManager defaultDeliveryTaskManager(DeliveryTaskDAO deliveryTaskDAO)
 	{
-		return createDefaultDeliveryTaskManager();
+		return createDefaultDeliveryTaskManager(deliveryTaskDAO);
 	}
 
 	@Bean
 	@Conditional(JmsTaskManagerType.class)
-	public DeliveryTaskManager jmsDeliveryTaskManager()
+	public DeliveryTaskManager jmsDeliveryTaskManager(DeliveryTaskDAO deliveryTaskDAO)
 	{
-		return new JMSDeliveryTaskManager(new JmsTemplate(connectionFactory),ebMSDAO,deliveryTaskDAO().getObject(),cpaManager,nrAutoRetries,autoRetryInterval);
+		return new JMSDeliveryTaskManager(new JmsTemplate(connectionFactory),ebMSDAO,deliveryTaskDAO,cpaManager,nrAutoRetries,autoRetryInterval);
 	}
 
 	@Bean
 	@Conditional(QuartzTaskManagerType.class)
-	public DeliveryTaskManager quartzDeliveryTaskManager()
+	public DeliveryTaskManager quartzDeliveryTaskManager(DeliveryTaskDAO deliveryTaskDAO)
 	{
-		return new QuartzDeliveryTaskManager(scheduler,ebMSDAO,deliveryTaskDAO().getObject(),cpaManager,nrAutoRetries,autoRetryInterval);
+		return new QuartzDeliveryTaskManager(scheduler,ebMSDAO,deliveryTaskDAO,cpaManager,nrAutoRetries,autoRetryInterval);
 	}
 
 	@Bean
 	@Conditional(QuartzJMSTaskManagerType.class)
-	public DeliveryTaskManager quartzJMSDeliveryTaskManager()
+	public DeliveryTaskManager quartzJMSDeliveryTaskManager(DeliveryTaskDAO deliveryTaskDAO)
 	{
-		return new QuartzJMSDeliveryTaskManager(scheduler,ebMSDAO,deliveryTaskDAO().getObject(),cpaManager,nrAutoRetries,autoRetryInterval,new JmsTemplate(connectionFactory));
+		return new QuartzJMSDeliveryTaskManager(scheduler,ebMSDAO,deliveryTaskDAO,cpaManager,nrAutoRetries,autoRetryInterval,new JmsTemplate(connectionFactory));
 	}
 
 	@Bean
 	@Conditional(QuartzKafkaTaskManagerType.class)
-	public DeliveryTaskManager quartzKafkaDeliveryTaskManager()
+	public DeliveryTaskManager quartzKafkaDeliveryTaskManager(
+			DeliveryTaskDAO deliveryTaskDAO,
+			@Autowired(required=false) @Qualifier("deliveryTaskKafkaTemplate") KafkaTemplate<String, DeliveryTask> kafkaTemplate)
 	{
-		return new QuartzKafkaDeliveryTaskManager(scheduler, ebMSDAO, deliveryTaskDAO().getObject(), cpaManager, nrAutoRetries, autoRetryInterval, kafkaTemplate);
+		return new QuartzKafkaDeliveryTaskManager(scheduler, ebMSDAO, deliveryTaskDAO, cpaManager, nrAutoRetries, autoRetryInterval, kafkaTemplate);
 	}
 
 	@Bean
-	public DeliveryTaskDAOFactory deliveryTaskDAO()
+	public DeliveryTaskDAO deliveryTaskDAO(@Autowired DataSource dataSource)
 	{
-		val jdbcTemplate = new JdbcTemplate(dataSource);
-		return new DeliveryTaskDAOFactory(dataSource,jdbcTemplate);
+		return new DeliveryTaskDAOImpl(new JdbcTemplate(dataSource));
 	}
 
-	private DAODeliveryTaskManager createDefaultDeliveryTaskManager()
+	private DAODeliveryTaskManager createDefaultDeliveryTaskManager(DeliveryTaskDAO deliveryTaskDAO)
 	{
-		return new DAODeliveryTaskManager(ebMSDAO,deliveryTaskDAO().getObject(),cpaManager,serverId,nrAutoRetries,autoRetryInterval);
+		return new DAODeliveryTaskManager(ebMSDAO,deliveryTaskDAO,cpaManager,serverId,nrAutoRetries,autoRetryInterval);
 	}
 
 	public static class DefaultTaskManagerType implements Condition

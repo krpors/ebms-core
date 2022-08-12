@@ -25,7 +25,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import javax.activation.DataHandler;
@@ -40,7 +39,6 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
-import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.w3c.dom.Document;
 import org.xml.sax.SAXException;
@@ -188,16 +186,7 @@ abstract class AbstractEbMSDAO implements EbMSDAO
 	@Override
 	public void executeTransaction(final Runnable runnable)
 	{
-		transactionTemplate.executeWithoutResult(
-			new Consumer<TransactionStatus>()
-			{
-				@Override
-				public void accept(TransactionStatus t)
-				{
-					runnable.run();
-				}
-			}
-		);
+		transactionTemplate.executeWithoutResult(t -> runnable.run());
 	}
 
 	@Override
@@ -434,8 +423,8 @@ abstract class AbstractEbMSDAO implements EbMSDAO
 				" and status = " + status.getId() +
 				EbMSDAO.getMessageFilter(messageFilter,parameters) +
 				" order by time_stamp asc",
-				parameters.toArray(new Object[0]),
-				String.class);
+				String.class,
+				parameters.toArray(new Object[0]));
 	}
 
 	@Override
@@ -443,6 +432,7 @@ abstract class AbstractEbMSDAO implements EbMSDAO
 	{
 		val parameters = new ArrayList<Object>();
 		val messageContextFilter = EbMSDAO.getMessageFilter(messageFilter,parameters);
+		parameters.add(maxNr);
 		return jdbcTemplate.queryForList(
 				"select message_id" +
 				" from ebms_message" +
@@ -450,10 +440,9 @@ abstract class AbstractEbMSDAO implements EbMSDAO
 				" and status = " + status.getId() +
 				messageContextFilter +
 				" order by time_stamp asc" +
-				" offset 0 rows" +
-				" fetch first (" + maxNr + ") rows only",
-				parameters.toArray(new Object[0]),
-				String.class);
+				" fetch first ? rows only",
+				String.class,
+				parameters.toArray(new Object[0]));
 	}
 
 	@Override

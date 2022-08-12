@@ -31,7 +31,7 @@ import lombok.experimental.FieldDefaults;
 
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @AllArgsConstructor
-abstract class DeliveryTaskDAOImpl implements DeliveryTaskDAO
+class DeliveryTaskDAOImpl implements DeliveryTaskDAO
 {
 	@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 	@AllArgsConstructor

@@ -17,7 +17,6 @@ package nl.clockwork.ebms.delivery.client;
 
 
 import java.util.Set;
-import javax.net.ssl.SSLParameters;
 import lombok.AccessLevel;
 import lombok.experimental.FieldDefaults;
 import nl.clockwork.ebms.cpa.certificate.CertificateMapper;
@@ -37,6 +36,8 @@ public class EbMSClientConfig
 	int connectTimeout;
 	@Value("${http.readTimeout}")
 	int readTimeout;
+	@Value("${http.chunkedStreamingMode}")
+	boolean chunkedStreamingMode;
 	@Value("${http.proxy.host}")
 	String proxyHost;
 	@Value("${http.proxy.port}")
@@ -66,28 +67,32 @@ public class EbMSClientConfig
 
 	@Bean
 	@DependsOn("ebMSProxyFactory")
-	public EbMSHttpClientFactory ebMSClientFactory(
-			EbMSProxy ebMSProxy,
-			SSLParameters sslParameters,
-			@Qualifier("clientKeyStore") EbMSKeyStore clientKeyStore,
-			EbMSTrustStore trustStore,
-			CertificateMapper certificateMapper)
+	public
+			EbMSHttpClientFactory
+			ebMSClientFactory(@Qualifier("clientKeyStore") EbMSKeyStore clientKeyStore, EbMSTrustStore trustStore, CertificateMapper certificateMapper)
 	{
 		return EbMSHttpClientFactory.builder()
 				.connectTimeout(connectTimeout)
 				.readTimeout(readTimeout)
-				.proxy(ebMSProxy)
-				.sslParameters(sslParameters)
+				.chunkedStreamingMode(chunkedStreamingMode)
+				.proxy(createProxy())
+				.enabledProtocols(enabledProtocols)
+				.enabledCipherSuites(enabledCipherSuites)
 				.verifyHostnames(verifyHostnames)
 				.keyStore(clientKeyStore)
 				.trustStore(trustStore)
-				.httpErrors(httpErrors())
+				.httpErrors(createHttpErrors())
 				.certificateMapper(certificateMapper)
 				.useClientCertificate(useClientCertificate)
 				.build();
 	}
 
-	private HttpErrors httpErrors()
+	private EbMSProxy createProxy()
+	{
+		return new EbMSProxyFactory(proxyHost, poxyPort, proxyUsername, proxyPassword, nonProxyHosts).getObject();
+	}
+
+	private HttpErrors createHttpErrors()
 	{
 		return new HttpErrors(recoverableInformationalHttpErrors, recoverableRedirectionHttpErrors, recoverableClientHttpErrors, unrecoverableServerHttpErrors);
 	}
@@ -96,11 +101,5 @@ public class EbMSClientConfig
 	public EbMSProxyFactory ebMSProxyFactory()
 	{
 		return new EbMSProxyFactory(proxyHost, poxyPort, proxyUsername, proxyPassword, nonProxyHosts);
-	}
-
-	@Bean
-	public SSLParametersFactory sslParametersFactory()
-	{
-		return new SSLParametersFactory(enabledProtocols, enabledCipherSuites);
 	}
 }

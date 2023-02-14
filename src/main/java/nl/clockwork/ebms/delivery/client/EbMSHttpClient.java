@@ -17,17 +17,17 @@ package nl.clockwork.ebms.delivery.client;
 
 
 import java.io.IOException;
+import java.net.HttpURLConnection;
 import java.net.InetSocketAddress;
-import java.net.ProxySelector;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse.BodyHandlers;
-import java.time.Duration;
+import java.net.Proxy;
+import java.net.URL;
+import java.net.URLConnection;
 import java.util.List;
-import javax.net.ssl.SSLParameters;
+import javax.net.ssl.HttpsURLConnection;
 import javax.xml.transform.TransformerException;
 import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Cleanup;
 import lombok.NonNull;
 import lombok.experimental.FieldDefaults;
 import lombok.val;
@@ -36,59 +36,72 @@ import nl.clockwork.ebms.processor.EbMSProcessingException;
 import nl.clockwork.ebms.processor.EbMSProcessorException;
 
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+@AllArgsConstructor
 class EbMSHttpClient implements EbMSClient
 {
+	@NonNull
+	SSLFactoryManager sslFactoryManager;
+	int connectTimeout;
 	int readTimeout;
+	boolean chunkedStreamingMode;
 	EbMSProxy proxy;
 	List<Integer> recoverableHttpErrors;
 	List<Integer> unrecoverableHttpErrors;
-	HttpClient httpClient;
-
-	public EbMSHttpClient(
-			@NonNull SSLParameters sslParameters,
-			@NonNull SSLContextFactory sslFactoryManager,
-			int connectTimeout,
-			int readTimeout,
-			EbMSProxy proxy,
-			List<Integer> recoverableHttpErrors,
-			List<Integer> unrecoverableHttpErrors)
-	{
-		this.readTimeout = readTimeout;
-		this.proxy = proxy;
-		this.recoverableHttpErrors = recoverableHttpErrors;
-		this.unrecoverableHttpErrors = unrecoverableHttpErrors;
-		this.httpClient = HttpClient.newBuilder()
-				.connectTimeout(Duration.ofMillis(connectTimeout))
-				.sslContext(sslFactoryManager.getSslContext())
-				.sslParameters(sslParameters)
-				.proxy(getProxy(proxy))
-				.build();
-	}
-
-	private ProxySelector getProxy(EbMSProxy proxy)
-	{
-		return proxy != null && proxy.useProxy() ? ProxySelector.of(new InetSocketAddress(proxy.getHost(), proxy.getPort())) : ProxySelector.getDefault();
-	}
 
 	public EbMSDocument sendMessage(String uri, EbMSDocument document) throws EbMSProcessorException
 	{
 		try
 		{
-			val response = httpClient.send(createRequest(readTimeout, proxy, uri, document), BodyHandlers.ofString());
-			return new EbMSResponseHandler(response, recoverableHttpErrors, unrecoverableHttpErrors).read();
+			@Cleanup("disconnect")
+			val connection = createConnection(uri);
+			new EbMSMessageWriter(connection).write(document);
+			connection.connect();
+			return new EbMSResponseHandler(connection, recoverableHttpErrors, unrecoverableHttpErrors).read();
 		}
-		catch (IOException | TransformerException | InterruptedException e)
+		catch (IOException | TransformerException e)
 		{
 			throw new EbMSProcessingException(e);
 		}
 	}
 
-	private static HttpRequest createRequest(int readTimeout, EbMSProxy proxy, String uri, EbMSDocument document) throws TransformerException
+	private HttpURLConnection createConnection(String uri) throws IOException
 	{
-		var request = HttpRequest.newBuilder().uri(URI.create(uri)).timeout(Duration.ofMillis(readTimeout));
-		request = new EbMSMessageWriter().write(request, document);
-		if (proxy != null && proxy.useProxyAuthorization())
-			request = request.setHeader(proxy.getProxyAuthorizationKey(), proxy.getProxyAuthorizationValue());
-		return request.build();
+		val result = (HttpURLConnection)openConnection(uri);
+		result.setConnectTimeout(connectTimeout);
+		result.setReadTimeout(readTimeout);
+		if (chunkedStreamingMode)
+			result.setChunkedStreamingMode(0);
+		return result;
+	}
+
+	private URLConnection openConnection(String uri) throws IOException
+	{
+		val connection = openConnection(new URL(uri));
+		connection.setDoOutput(true);
+		// connection.setMethod("POST");
+		if (connection instanceof HttpsURLConnection)
+		{
+			((HttpsURLConnection)connection).setHostnameVerifier(sslFactoryManager.getHostnameVerifier());
+			((HttpsURLConnection)connection).setSSLSocketFactory(sslFactoryManager.getSslSocketFactory());
+		}
+		return connection;
+	}
+
+	private URLConnection openConnection(URL url) throws IOException
+	{
+		if (this.proxy != null)
+		{
+			val connectionProxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(this.proxy.getHost(), this.proxy.getPort()));
+			if (this.proxy.useProxyAuthorization())
+			{
+				val connection = url.openConnection(connectionProxy);
+				connection.setRequestProperty(this.proxy.getProxyAuthorizationKey(), this.proxy.getProxyAuthorizationValue());
+				return connection;
+			}
+			else
+				return url.openConnection(connectionProxy);
+		}
+		else
+			return url.openConnection();
 	}
 }

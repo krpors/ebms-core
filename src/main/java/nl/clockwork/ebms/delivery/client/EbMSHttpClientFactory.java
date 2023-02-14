@@ -16,16 +16,14 @@
 package nl.clockwork.ebms.delivery.client;
 
 
-import java.security.KeyManagementException;
 import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.UnrecoverableKeyException;
 import java.security.cert.X509Certificate;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import javax.net.ssl.SSLParameters;
 import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.Builder.Default;
 import lombok.NonNull;
 import lombok.experimental.FieldDefaults;
 import lombok.val;
@@ -36,14 +34,18 @@ import nl.clockwork.ebms.security.EbMSTrustStore;
 import org.apache.commons.lang3.StringUtils;
 import org.oasis_open.committees.ebxml_cppa.schema.cpp_cpa_2_0.DeliveryChannel;
 
+@Builder
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+@AllArgsConstructor
 public class EbMSHttpClientFactory
 {
 	int connectTimeout;
 	int readTimeout;
+	boolean chunkedStreamingMode;
 	EbMSProxy proxy;
-	@NonNull
-	SSLParameters sslParameters;
+	String[] enabledProtocols;
+	String[] enabledCipherSuites;
+	boolean verifyHostnames;
 	@NonNull
 	EbMSKeyStore keyStore;
 	EbMSTrustStore trustStore;
@@ -52,49 +54,19 @@ public class EbMSHttpClientFactory
 	CertificateMapper certificateMapper;
 	boolean useClientCertificate;
 	@NonNull
+	@Default
 	Map<String, EbMSClient> clients = new ConcurrentHashMap<>();
-
-	@Builder
-	public EbMSHttpClientFactory(
-			int connectTimeout,
-			int readTimeout,
-			EbMSProxy proxy,
-			SSLParameters sslParameters,
-			boolean verifyHostnames,
-			@NonNull EbMSKeyStore keyStore,
-			EbMSTrustStore trustStore,
-			HttpErrors httpErrors,
-			@NonNull CertificateMapper certificateMapper,
-			boolean useClientCertificate)
-	{
-		this.connectTimeout = connectTimeout;
-		this.readTimeout = readTimeout;
-		this.proxy = proxy;
-		this.sslParameters = sslParameters;
-		this.keyStore = keyStore;
-		this.trustStore = trustStore;
-		this.httpErrors = httpErrors;
-		this.certificateMapper = certificateMapper;
-		this.useClientCertificate = useClientCertificate;
-		System.getProperties().setProperty("jdk.internal.httpclient.disableHostnameVerification", Boolean.toString(verifyHostnames));
-	}
-
-	public EbMSClient getEbMSClient(String clientAlias)
-	{
-		val key = clientAlias == null ? "" : clientAlias;
-		return clients.computeIfAbsent(key, k -> createEbMSClient(clientAlias));
-	}
 
 	private EbMSClient createEbMSClient(String clientAlias)
 	{
 		try
 		{
-			val sslContextFactory = createSslContextFactory(getClientAlias(clientAlias));
+			val sslFactoryManager = createSslFactoryManager(getClientAlias(clientAlias));
 			return new EbMSHttpClient(
-					sslParameters,
-					sslContextFactory,
+					sslFactoryManager,
 					connectTimeout,
 					readTimeout,
+					chunkedStreamingMode,
 					proxy,
 					httpErrors.getRecoverableHttpErrors(),
 					httpErrors.getUnrecoverableHttpErrors());
@@ -105,15 +77,11 @@ public class EbMSHttpClientFactory
 		}
 	}
 
-	private String getClientAlias(String clientAlias)
+	public EbMSClient getEbMSClient(String clientAlias)
 	{
-		return clientAlias == null && StringUtils.isNotEmpty(keyStore.getDefaultAlias()) ? keyStore.getDefaultAlias() : clientAlias;
-	}
-
-	private SSLContextFactory createSslContextFactory(String clientAlias)
-			throws UnrecoverableKeyException, KeyManagementException, NoSuchAlgorithmException, KeyStoreException
-	{
-		return SSLContextFactory.builder().keyStore(keyStore).trustStore(trustStore).clientAlias(clientAlias).build();
+		val key = clientAlias == null ? "" : clientAlias;
+		clients.computeIfAbsent(key, k -> createEbMSClient(clientAlias));
+		return clients.get(key);
 	}
 
 	public EbMSClient getEbMSClient(String cpaId, DeliveryChannel sendDeliveryChannel)
@@ -130,10 +98,27 @@ public class EbMSHttpClientFactory
 		}
 	}
 
+	private String getClientAlias(String clientAlias)
+	{
+		return clientAlias == null && StringUtils.isNotEmpty(keyStore.getDefaultAlias()) ? keyStore.getDefaultAlias() : clientAlias;
+	}
+
 	private X509Certificate getClientCertificate(String cpaId, DeliveryChannel deliveryChannel)
 	{
 		return useClientCertificate && deliveryChannel != null
 				? certificateMapper.getCertificate(CPAUtils.getX509Certificate(CPAUtils.getClientCertificate(deliveryChannel)), cpaId)
 				: null;
+	}
+
+	private SSLFactoryManager createSslFactoryManager(String clientAlias) throws Exception
+	{
+		return SSLFactoryManager.builder()
+				.keyStore(keyStore)
+				.trustStore(trustStore)
+				.verifyHostnames(verifyHostnames)
+				.enabledProtocols(enabledProtocols)
+				.enabledCipherSuites(enabledCipherSuites)
+				.clientAlias(clientAlias)
+				.build();
 	}
 }

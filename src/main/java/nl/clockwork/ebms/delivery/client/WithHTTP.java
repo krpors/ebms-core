@@ -18,19 +18,26 @@ package nl.clockwork.ebms.delivery.client;
 
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import org.springframework.util.StringUtils;
 
-public class EbMSUnrecoverableResponseException extends EbMSResponseException
+public interface WithHTTP
 {
-	private static final long serialVersionUID = 1L;
-
-	public EbMSUnrecoverableResponseException(int statusCode, Map<String, List<String>> headers)
+	default String getCharSet(String contentType)
 	{
-		super(statusCode, headers);
+		return Stream.of(contentType.replace(" ", "").split(";"))
+				.filter(part -> part.startsWith("charset="))
+				.map(part -> part.split("=", 2)[1])
+				.findFirst()
+				.orElse(null);
 	}
 
-	public EbMSUnrecoverableResponseException(int statusCode, Map<String, List<String>> headers, String message)
+	default String toString(Map<String, List<String>> properties)
 	{
-		super(statusCode, headers, message);
+		return properties.entrySet()
+				.stream()
+				.map(entry -> (entry.getKey() != null ? entry.getKey() + "=" : "") + StringUtils.collectionToCommaDelimitedString(entry.getValue()))
+				.collect(Collectors.joining("\n"));
 	}
-
 }

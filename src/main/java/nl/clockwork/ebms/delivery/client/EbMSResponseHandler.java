@@ -17,8 +17,9 @@ package nl.clockwork.ebms.delivery.client;
 
 
 import java.io.IOException;
-import java.net.http.HttpResponse;
-import java.util.Collections;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.nio.charset.Charset;
 import java.util.List;
 import javax.servlet.http.HttpServletResponse;
 import javax.xml.parsers.ParserConfigurationException;
@@ -26,10 +27,13 @@ import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.NonNull;
 import lombok.experimental.FieldDefaults;
+import lombok.val;
 import nl.clockwork.ebms.Constants;
+import nl.clockwork.ebms.EbMSMessageReader;
 import nl.clockwork.ebms.model.EbMSDocument;
+import nl.clockwork.ebms.processor.EbMSProcessingException;
 import nl.clockwork.ebms.processor.EbMSProcessorException;
-import nl.clockwork.ebms.util.DOMUtils;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,11 +41,11 @@ import org.xml.sax.SAXException;
 
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @AllArgsConstructor
-class EbMSResponseHandler
+class EbMSResponseHandler implements WithHTTP
 {
 	private static final Logger messageLog = LoggerFactory.getLogger(Constants.MESSAGE_LOG);
 	@NonNull
-	HttpResponse<String> response;
+	HttpURLConnection connection;
 	@NonNull
 	List<Integer> recoverableHttpErrors;
 	@NonNull
@@ -51,69 +55,118 @@ class EbMSResponseHandler
 	{
 		try
 		{
-			switch (response.statusCode() / 100)
+			switch (connection.getResponseCode() / 100)
 			{
 				case 2:
-					if (response.statusCode() == HttpServletResponse.SC_NO_CONTENT || response.body().length() == 0)
+					if (connection.getResponseCode() == HttpServletResponse.SC_NO_CONTENT || connection.getContentLength() == 0)
 					{
-						logResponse(response);
+						logResponse(connection);
 						return null;
 					}
 					else
-						return readSuccesResponse(response);
+						return readSuccesResponse(connection);
 				case 1:
 				case 3:
 				case 4:
-					throw createRecoverableErrorException(response);
+					throw createRecoverableErrorException(connection);
 				case 5:
-					throw createUnrecoverableErrorException(response);
+					throw createUnrecoverableErrorException(connection);
 				default:
-					logResponse(response);
-					throw new EbMSUnrecoverableResponseException(response);
+					logResponse(connection);
+					throw new EbMSUnrecoverableResponseException(connection.getResponseCode(), connection.getHeaderFields());
 			}
 		}
 		catch (IOException e)
 		{
-			throw new EbMSResponseException(response, e);
+			try
+			{
+				throw new EbMSResponseException(connection.getResponseCode(), connection.getHeaderFields(), e);
+			}
+			catch (IOException e1)
+			{
+				throw new EbMSProcessingException(e);
+			}
 		}
 	}
 
-	private EbMSDocument readSuccesResponse(HttpResponse<String> response) throws IOException
+	private EbMSDocument readSuccesResponse(HttpURLConnection connection) throws IOException
 	{
-		logResponse(response);
-		try
+		try (val input = connection.getInputStream())
 		{
-			return toEbMSDocument(response.headers().firstValue("Content-ID").orElse(null), response.body());
+			val messageReader = new EbMSMessageReader(getHeaderField("Content-ID"), getHeaderField("Content-Type"));
+			val response = IOUtils.toString(input, getEncoding());
+			logResponse(connection, response);
+			try
+			{
+				return messageReader.readResponse(response);
+			}
+			catch (ParserConfigurationException e)
+			{
+				throw new EbMSProcessorException(e);
+			}
+			catch (SAXException e)
+			{
+				throw new EbMSResponseException(connection.getResponseCode(), connection.getHeaderFields(), response, e);
+			}
 		}
-		catch (ParserConfigurationException e)
+	}
+
+	private EbMSResponseException createRecoverableErrorException(HttpURLConnection connection) throws IOException
+	{
+		try (val input = connection.getErrorStream())
 		{
-			throw new EbMSProcessorException(e);
+			val response = readResponse(connection, input);
+			return recoverableHttpErrors.contains(connection.getResponseCode())
+					? new EbMSResponseException(connection.getResponseCode(), connection.getHeaderFields(), response)
+					: new EbMSUnrecoverableResponseException(connection.getResponseCode(), connection.getHeaderFields(), response);
 		}
-		catch (SAXException e)
+	}
+
+	private EbMSResponseException createUnrecoverableErrorException(HttpURLConnection connection) throws IOException
+	{
+		try (val input = connection.getErrorStream())
 		{
-			throw new EbMSResponseException(response, e);
+			val response = readResponse(connection, input);
+			return unrecoverableHttpErrors.contains(connection.getResponseCode())
+					? new EbMSUnrecoverableResponseException(connection.getResponseCode(), connection.getHeaderFields(), response)
+					: new EbMSResponseException(connection.getResponseCode(), connection.getHeaderFields(), response);
 		}
 	}
 
-	public EbMSDocument toEbMSDocument(String contentId, String message) throws IOException, ParserConfigurationException, SAXException
+	private String readResponse(HttpURLConnection connection, InputStream input) throws IOException
 	{
-		return StringUtils.isNotBlank(message)
-				? EbMSDocument.builder().contentId(contentId).message(DOMUtils.read(message)).attachments(Collections.emptyList()).build()
-				: null;
+		String response = null;
+		if (input != null)
+		{
+			response = IOUtils.toString(input, Charset.defaultCharset());
+			logResponse(connection, response);
+		}
+		return response;
 	}
 
-	private EbMSResponseException createRecoverableErrorException(HttpResponse<String> response)
+	private String getEncoding() throws EbMSProcessingException
 	{
-		return recoverableHttpErrors.contains(response.statusCode()) ? new EbMSResponseException(response) : new EbMSUnrecoverableResponseException(response);
+		val contentType = getHeaderField("Content-Type");
+		if (!StringUtils.isEmpty(contentType))
+			return getCharSet(contentType);
+		else
+			throw new EbMSProcessingException("HTTP header Content-Type is not set!");
 	}
 
-	private EbMSResponseException createUnrecoverableErrorException(HttpResponse<String> response)
+	private String getHeaderField(String name)
 	{
-		return unrecoverableHttpErrors.contains(response.statusCode()) ? new EbMSUnrecoverableResponseException(response) : new EbMSResponseException(response);
+		return connection.getHeaderField(name);
 	}
 
-	private void logResponse(HttpResponse<String> response)
+	private void logResponse(HttpURLConnection connection) throws IOException
 	{
-		messageLog.info("<<<<\nStatusCode={}\nHeaders={}{}", response.statusCode(), response.headers(), (response.body() != null ? "\n" + response.body() : ""));
+		logResponse(connection, null);
 	}
+
+	private void logResponse(HttpURLConnection connection, String response) throws IOException
+	{
+		val headers = connection.getResponseCode() + (messageLog.isDebugEnabled() ? "\n" + toString(connection.getHeaderFields()) : "");
+		messageLog.info("<<<<\nStatusCode={}{}", headers, (response != null ? "\n" + response : ""));
+	}
+
 }

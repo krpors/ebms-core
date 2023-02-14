@@ -16,7 +16,8 @@
 package nl.clockwork.ebms.delivery.client;
 
 
-import java.net.http.HttpResponse;
+import java.util.List;
+import java.util.Map;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -27,32 +28,37 @@ import nl.clockwork.ebms.processor.EbMSProcessingException;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @AllArgsConstructor
 @Getter
-public class EbMSResponseException extends EbMSProcessingException
+public class EbMSResponseException extends EbMSProcessingException implements WithHTTP
 {
 	private static final long serialVersionUID = 1L;
-	HttpResponse<String> repsonse;
+	int statusCode;
+	@NonNull
+	Map<String, List<String>> headers;
 
-	public EbMSResponseException(@NonNull HttpResponse<String> repsonse, String message)
+	public EbMSResponseException(int statusCode, @NonNull Map<String, List<String>> headers, String message)
 	{
 		super(message);
-		this.repsonse = repsonse;
+		this.statusCode = statusCode;
+		this.headers = headers;
 	}
 
-	public EbMSResponseException(@NonNull HttpResponse<String> repsonse, Throwable cause)
+	public EbMSResponseException(int statusCode, @NonNull Map<String, List<String>> headers, Throwable cause)
 	{
 		super(cause);
-		this.repsonse = repsonse;
+		this.statusCode = statusCode;
+		this.headers = headers;
 	}
 
-	public EbMSResponseException(@NonNull HttpResponse<String> repsonse, String message, Throwable cause)
+	public EbMSResponseException(int statusCode, @NonNull Map<String, List<String>> headers, String message, Throwable cause)
 	{
 		super(message, cause);
-		this.repsonse = repsonse;
+		this.statusCode = statusCode;
+		this.headers = headers;
 	}
 
 	@Override
 	public String getMessage()
 	{
-		return "StatusCode=" + repsonse.statusCode() + "\nHeaders=" + repsonse.headers().toString() + "\n" + (super.getMessage() != null ? super.getMessage() : "");
+		return "StatusCode=" + statusCode + "\n" + toString(headers) + "\n" + (super.getMessage() != null ? super.getMessage() : "");
 	}
 }

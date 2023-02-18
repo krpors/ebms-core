@@ -37,8 +37,6 @@ public class EbMSClientConfig
 	int connectTimeout;
 	@Value("${http.readTimeout}")
 	int readTimeout;
-	@Value("${deliveryManager.maxThreads}")
-	Integer maxThreads;
 	@Value("${http.proxy.host}")
 	String proxyHost;
 	@Value("${http.proxy.port}")
@@ -78,7 +76,6 @@ public class EbMSClientConfig
 		return EbMSHttpClientFactory.builder()
 				.connectTimeout(connectTimeout)
 				.readTimeout(readTimeout)
-				.maxThreads(maxThreads)
 				.proxy(ebMSProxy)
 				.sslParameters(sslParameters)
 				.verifyHostnames(verifyHostnames)

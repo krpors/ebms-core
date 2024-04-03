@@ -96,12 +96,18 @@ public class JMSDeliveryManager extends DeliveryManager
 	{
 		jmsTemplate.setExplicitQosEnabled(true);
 		jmsTemplate.setTimeToLive(Constants.MINUTE_IN_MILLIS);
-		jmsTemplate.convertAndSend(JMS_DESTINATION_NAME, message, m ->
-		{
-			m.setJMSCorrelationID(message.getMessageHeader().getMessageData().getRefToMessageId());
-			// m.setJMSExpiration(Constants.MINUTE_IN_MILLIS);
-			return m;
-		});
+
+		try {
+			jmsTemplate.convertAndSend(JMS_DESTINATION_NAME, message, m ->
+			{
+				m.setJMSCorrelationID(message.getMessageHeader().getMessageData().getRefToMessageId());
+				// m.setJMSExpiration(Constants.MINUTE_IN_MILLIS);
+				return m;
+			});
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw new EbMSProcessingException(e);
+		}
 	}
 
 	@Async("deliveryManagerTaskExecutor")

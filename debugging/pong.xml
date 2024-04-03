@@ -1,0 +1,23 @@
+<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/">
+    <SOAP-ENV:Header>
+        <ns2:MessageHeader xmlns:ns2="http://www.oasis-open.org/committees/ebxml-msg/schema/msg-header-2_0.xsd"
+                           SOAP-ENV:mustUnderstand="1" ns2:version="2.0">
+            <ns2:From>
+                <ns2:PartyId ns2:type="urn:osb:oin">00000004003214345001</ns2:PartyId>
+            </ns2:From>
+            <ns2:To>
+                <ns2:PartyId ns2:type="urn:osb:oin">00000004003214345009</ns2:PartyId>
+            </ns2:To>
+            <ns2:CPAId>20240206_XO_TESTCPA_ROUTSERV_AFNSTUB</ns2:CPAId>
+            <ns2:ConversationId>a7052279-6641-46c8-8e76-3b71928e4d2e</ns2:ConversationId>
+            <ns2:Service>urn:oasis:names:tc:ebxml-msg:service</ns2:Service>
+            <ns2:Action>Pong</ns2:Action>
+            <ns2:MessageData>
+                <ns2:MessageId>fc03f9bf-92f6-4741-a11c-7d30e005b6e6@KoppelvlakkenStub</ns2:MessageId>
+                <ns2:Timestamp>2024-03-27T20:48:34.783Z</ns2:Timestamp>
+                <ns2:RefToMessageId>a7052279-6641-46c8-8e76-3b71928e4d2e@ebms-stub-service</ns2:RefToMessageId>
+            </ns2:MessageData>
+        </ns2:MessageHeader>
+    </SOAP-ENV:Header>
+    <SOAP-ENV:Body/>
+</SOAP-ENV:Envelope>
